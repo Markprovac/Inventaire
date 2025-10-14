@@ -1,7 +1,7 @@
 {
-  "name": "Stock Pi\u00e8ces",
-  "short_name": "StockPi\u00e8ces",
-  "start_url": "/",
+  "name": "Stock Pièces",
+  "short_name": "StockPièces",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f7f9fc",
   "theme_color": "#0b74de",
