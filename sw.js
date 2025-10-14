@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stock-auto-v2';
+const CACHE_NAME = 'stock-auto-v3';
 const urlsToCache = [
   './',
   './index.html',
@@ -109,3 +109,4 @@ self.addEventListener('notificationclick', event => {
   );
 
 });
+
