@@ -1,0 +1,42 @@
+{
+  "name": "Gestion Stock Pièces Auto",
+  "short_name": "Stock Auto",
+  "description": "Application de gestion de stock de pièces automobiles",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#1e3a8a",
+  "theme_color": "#1e3a8a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%231e3a8a'/%3E%3Cpath fill='white' d='M96 48L48 72v48l48 24 48-24V72L96 48zm0 16l32 16v32l-32 16-32-16V80l32-16z'/%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%231e3a8a'/%3E%3Cpath fill='white' d='M256 128L128 192v128l128 64 128-64V192L256 128zm0 42.67l85.33 42.66v85.34L256 341.33l-85.33-42.66v-85.34L256 170.67z'/%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 540 720'%3E%3Crect width='540' height='720' fill='%231e3a8a'/%3E%3Ctext x='270' y='360' font-size='24' fill='white' text-anchor='middle'%3EStock Pièces Auto%3C/text%3E%3C/svg%3E",
+      "sizes": "540x720",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    }
+  ],
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text"
+    }
+  }
+}
