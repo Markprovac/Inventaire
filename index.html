@@ -622,38 +622,31 @@
                 document.getElementById('videoContainer').classList.add('hidden');
             }
         }*/
-let html5QrCode;
-
-async function startCamera() {
-  const scannerDiv = document.getElementById('videoContainer');
-  scannerDiv.classList.remove('hidden');
-  document.getElementById('btnCamera').classList.add('hidden');
-
-  html5QrCode = new Html5Qrcode("video"); // l’élément <video id="video">
-
-  try {
-    await html5QrCode.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: 250 },
-      (decodedText, decodedResult) => {
-        document.getElementById('manualInput').value = decodedText;
-        html5QrCode.stop(); // stoppe la caméra après lecture
-        alert("Code détecté : " + decodedText);
+ async function startCamera(){
+      const readerDiv=document.getElementById("reader");
+      html5QrCode = new Html5Qrcode("reader");
+      try{
+        await html5QrCode.start(
+          { facingMode:"environment" },
+          { fps:10, qrbox:250 },
+          (decodedText)=>{
+            document.getElementById('manualInput').value = decodedText;
+            handleSubmit(); // ajoute direct
+            alert("✅ Code détecté : "+decodedText);
+            html5QrCode.stop();
+          }
+        );
+      }catch(err){
+        alert("Erreur caméra : "+err);
       }
-    );
-  } catch (err) {
-    alert("Erreur lors du démarrage de la caméra : " + err);
-  }
-}
-
-function stopCamera() {
-  if (html5QrCode) {
-    html5QrCode.stop().then(() => {
-      document.getElementById('videoContainer').classList.add('hidden');
-      document.getElementById('btnCamera').classList.remove('hidden');
-    });
-  }
-}
+    }
+    function stopCamera(){
+      if(html5QrCode){
+        html5QrCode.stop().catch(()=>{}).finally(()=>{
+          document.getElementById("reader").innerHTML="";
+        });
+      }
+    }
 
         // Gestion des quantités
         function increaseQty() {
