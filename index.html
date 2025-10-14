@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Stock Pièces (PWA)</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0b74de" />
+  <style>
+    :root{--accent:#0b74de;--bg:#f7f9fc;--card:#ffffff}
+    html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial}
+    body{background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+    .app{width:100%;max-width:620px}
+    header{display:flex;align-items:center;gap:12px}
+    h1{margin:0;font-size:1.2rem}
+    .card{background:var(--card);border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,0.06);padding:16px;margin-top:14px}
+    .grid{display:grid;gap:10px;grid-template-columns:1fr 1fr}
+    button{padding:14px;border-radius:10px;border:0;font-weight:600;background:var(--accent);color:white}
+    button.secondary{background:transparent;color:var(--accent);border:2px solid var(--accent)}
+    #video{width:100%;height:260px;background:#111;border-radius:8px;object-fit:cover}
+    .row{display:flex;gap:10px;align-items:center}
+    input[type='search']{width:100%;padding:10px;border-radius:8px;border:1px solid #ddd}
+    .list-item{padding:10px;border-bottom:1px solid #eee;display:flex;justify-content:space-between}
+    .muted{color:#666;font-size:0.9rem}
+    .small{font-size:0.9rem}
+    footer{margin-top:12px;text-align:center;color:#666}
+    /* Modal */
+    .modal-backdrop{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:40}
+    .modal{background:white;padding:18px;border-radius:12px;max-width:420px;width:92%}
+    .modal h3{margin:0 0 8px 0}
+    .modal .row{justify-content:space-between}
+    input[type=number]{width:120px;padding:8px;border-radius:8px;border:1px solid #ddd}
+  </style>
+  <script src="https://unpkg.com/@zxing/library@0.19.0/umd/index.min.js"></script>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div style="flex:1">
+        <h1>Stock Pièces — PWA</h1>
+        <div class="muted small">Entrées / Sorties par scan — Stock local (IndexedDB) — Mode hors-ligne</div>
+      </div>
+      <div>
+        <button id="btn-install" class="secondary" style="display:none">Installer</button>
+      </div>
+    </header>
+
+    <div class="card">
+      <div class="grid">
+        <button id="btn-entrees">Entrées (Scanner)</button>
+        <button id="btn-sorties">Sorties (Scanner)</button>
+      </div>
+
+      <div style="margin-top:10px;display:flex;gap:10px">
+        <button id="btn-inventaire" class="secondary">Inventaire</button>
+        <button id="btn-export" class="secondary">Exporter CSV</button>
+      </div>
+    </div>
+
+    <div id="scannerCard" class="card" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div id="scannerMode">Mode:</div>
+        <div><button id="btn-stop" class="secondary">Arrêter</button></div>
+      </div>
+      <video id="video"></video>
+      <div class="muted small" style="margin-top:8px">Pointez la caméra vers un code-barres ou QR.</div>
+    </div>
+
+    <div id="inventoryCard" class="card" style="display:none">
+      <input id="search" type="search" placeholder="Rechercher une référence..." />
+      <div id="partsList" style="margin-top:8px"></div>
+    </div>
+
+    <div id="toast" style="position:fixed;left:50%;transform:translateX(-50%);bottom:30px;background:#222;color:#fff;padding:10px 16px;border-radius:8px;display:none"></div>
+
+    <footer>Fonctionne hors-ligne. Pour installer : ouvrir le menu du navigateur → "Ajouter à l'écran d'accueil" (ou utiliser le bouton Installer).</footer>
+  </div>
+
+  <!-- Modal for quantity after scan -->
+  <div id="modalBackdrop" class="modal-backdrop" style="display:none" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true">
+      <h3 id="modalTitle">Référence</h3>
+      <div class="muted" id="modalRef">REF</div>
+      <div style="margin-top:12px" class="row">
+        <label for="modalQty" class="muted">Quantité</label>
+        <input id="modalQty" type="number" value="1" step="1" />
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">
+        <button id="modalCancel" class="secondary">Annuler</button>
+        <button id="modalConfirm">Valider</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+const DB_NAME = 'stockpieces-db', DB_STORE = 'parts', DB_VERSION = 1;
+
+// IndexedDB helpers
+function openDb(){
+  return new Promise((resolve, reject)=>{
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = (e)=>{
+      const db = e.target.result;
+      if(!db.objectStoreNames.contains(DB_STORE)){
+        const store = db.createObjectStore(DB_STORE, {keyPath:'ref'});
+        store.createIndex('ref','ref',{unique:true});
+      }
+    };
+    req.onsuccess = ()=>resolve(req.result);
+    req.onerror = ()=>reject(req.error);
+  });
+}
+
+async function getAllParts(){
+  const db = await openDb();
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction(DB_STORE,'readonly');
+    const store = tx.objectStore(DB_STORE);
+    const r = store.getAll();
+    r.onsuccess = ()=>resolve(r.result.sort((a,b)=>a.ref.localeCompare(b.ref)));
+    r.onerror = ()=>reject(r.error);
+  });
+}
+
+async function getPart(ref){
+  const db = await openDb();
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction(DB_STORE,'readonly');
+    const store = tx.objectStore(DB_STORE);
+    const r = store.get(ref);
+    r.onsuccess = ()=>resolve(r.result);
+    r.onerror = ()=>reject(r.error);
+  });
+}
+
+async function upsertPart(ref, delta=1){
+  ref = String(ref).trim();
+  if(!ref) return null;
+  const db = await openDb();
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction(DB_STORE,'readwrite');
+    const store = tx.objectStore(DB_STORE);
+    const g = store.get(ref);
+    g.onsuccess = ()=>{
+      let existing = g.result;
+      if(!existing){
+        if(delta<=0){ tx.oncomplete = ()=>resolve(null); return; }
+        existing = {ref, quantity: delta};
+        store.put(existing);
+        tx.oncomplete = ()=>resolve(existing);
+      } else {
+        existing.quantity = (existing.quantity||0) + delta;
+        if(existing.quantity<=0){
+          store.delete(ref);
+          tx.oncomplete = ()=>resolve(null);
+        } else {
+          store.put(existing);
+          tx.oncomplete = ()=>resolve(existing);
+        }
+      }
+    };
+    g.onerror = ()=>reject(g.error);
+  });
+}
+
+// UI helpers
+function toast(msg, time=2200){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display='block';
+  clearTimeout(t._to);
+  t._to = setTimeout(()=>t.style.display='none', time);
+}
+
+// ZXing scanner
+const codeReader = new ZXing.BrowserMultiFormatReader();
+let lastScannedRef = null;
+let activeModeIsEntry = true; // true => entries, false => sorties
+
+async function startScanner(isEntry){
+  activeModeIsEntry = !!isEntry;
+  document.getElementById('scannerCard').style.display='block';
+  document.getElementById('inventoryCard').style.display='none';
+  document.getElementById('scannerMode').textContent = isEntry ? 'Mode: Entrées' : 'Mode: Sorties';
+  const videoElem = document.getElementById('video');
+
+  try{
+    const devices = await ZXing.BrowserCodeReader.listVideoInputDevices();
+    const deviceId = devices.length ? devices[0].deviceId : undefined;
+    await codeReader.decodeFromVideoDevice(deviceId, videoElem, (result, err)=>{
+      if(result){
+        const ref = String(result.text).trim();
+        if(!ref) return;
+        // open modal to confirm quantity
+        lastScannedRef = ref;
+        openQuantityModal(ref, isEntry);
+        // pause scanner until modal closed
+        codeReader.reset();
+      }
+    });
+  }catch(e){
+    console.error(e);
+    toast('Impossible d\\'ouvrir la caméra');
+    document.getElementById('scannerCard').style.display='none';
+  }
+}
+
+function stopScanner(){
+  try{ codeReader.reset(); } catch(e){}
+  document.getElementById('scannerCard').style.display='none';
+}
+
+// Modal logic
+const modal = document.getElementById('modalBackdrop');
+const modalRef = document.getElementById('modalRef');
+const modalQty = document.getElementById('modalQty');
+const modalTitle = document.getElementById('modalTitle');
+document.getElementById('modalCancel').addEventListener('click', ()=>{ closeModal(); });
+document.getElementById('modalConfirm').addEventListener('click', async ()=>{
+  const qty = parseInt(modalQty.value, 10) || 0;
+  if(!lastScannedRef){ closeModal(); return; }
+  const delta = activeModeIsEntry ? Math.max(0, qty) : -Math.max(0, qty);
+  if(delta === 0){ toast('Quantité 0 — aucune modification'); closeModal(); return; }
+  const updated = await upsertPart(lastScannedRef, delta);
+  if(updated) toast((activeModeIsEntry? 'Entrée' : 'Sortie') + ': ' + lastScannedRef + ' → Qté '+updated.quantity);
+  else toast((activeModeIsEntry? 'Entrée' : 'Sortie') + ': ' + lastScannedRef + ' → plus en stock (supprimé)');
+  closeModal();
+  // restart scanner automatically after short delay
+  setTimeout(()=>startScanner(activeModeIsEntry), 600);
+});
+
+function openQuantityModal(ref, isEntry){
+  modalRef.textContent = ref;
+  modalTitle.textContent = isEntry ? 'Valider entrée' : 'Valider sortie';
+  modalQty.value = '1';
+  modal.style.display = 'flex';
+  modal.setAttribute('aria-hidden','false');
+  modalQty.focus();
+}
+
+function closeModal(){
+  modal.style.display = 'none';
+  modal.setAttribute('aria-hidden','true');
+  lastScannedRef = null;
+}
+
+// Inventory UI
+async function showInventory(){ document.getElementById('inventoryCard').style.display='block'; document.getElementById('scannerCard').style.display='none'; const list = await getAllParts(); renderParts(list); }
+function renderParts(list){ const container = document.getElementById('partsList'); container.innerHTML = ''; if(!list || list.length===0){ container.innerHTML = '<div class=\"muted\">Aucune référence en stock</div>'; return } list.forEach(p=>{ const el = document.createElement('div'); el.className='list-item'; el.innerHTML = `<div>${p.ref}</div><div><strong>Qté: ${p.quantity}</strong></div>`; container.appendChild(el); }); }
+
+// Search
+const searchInput = document.getElementById('search');
+searchInput.addEventListener('input', async (e)=>{
+  const q = e.target.value.trim().toLowerCase();
+  const all = await getAllParts();
+  renderParts(all.filter(p=>p.ref.toLowerCase().includes(q)));
+});
+
+// Export CSV
+async function exportCSV(){
+  const all = await getAllParts();
+  if(!all || all.length===0){ toast('Rien à exporter'); return; }
+  const csvLines = [['ref','quantity'],...all.map(p=>[p.ref,p.quantity])];
+  const csv = csvLines.map(r=>r.map(cell=>`\"${String(cell).replace(/\"/g,'\"\"')}\"`).join(',')).join('\\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'stockpieces_export.csv';
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  toast('Export CSV prêt');
+}
+
+// Buttons
+document.getElementById('btn-entrees').addEventListener('click', ()=>startScanner(true));
+document.getElementById('btn-sorties').addEventListener('click', ()=>startScanner(false));
+document.getElementById('btn-stop').addEventListener('click', ()=>stopScanner());
+document.getElementById('btn-inventaire').addEventListener('click', ()=>showInventory());
+document.getElementById('btn-export').addEventListener('click', ()=>exportCSV());
+
+// PWA install prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e)=>{ e.preventDefault(); deferredPrompt = e; const btn = document.getElementById('btn-install'); btn.style.display='inline-block'; btn.onclick = async ()=>{ btn.style.display='none'; deferredPrompt.prompt(); const choice = await deferredPrompt.userChoice; toast(choice.outcome==='accepted'?'Installé':'Annulé'); deferredPrompt = null; }; });
+
+// Register service worker
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('/service-worker.js').then(()=>console.log('SW registered')).catch(()=>console.warn('SW failed')); }
+
+// show inventory on load
+showInventory();
+</script>
+</body>
+</html>
