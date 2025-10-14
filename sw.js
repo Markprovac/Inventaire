@@ -66,7 +66,7 @@ self.addEventListener('fetch', event => {
       })
       .catch(() => {
         // En cas d'erreur réseau, retourne une page par défaut
-        return caches.match('/index.html');
+        return caches.match('./index.html');
       })
   );
 });
