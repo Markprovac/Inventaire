@@ -410,6 +410,7 @@
         }
     </style>
 </head>
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 <body>
     <!-- Page d'accueil -->
     <div id="home">
@@ -599,7 +600,7 @@
         }
 
         // Caméra
-        async function startCamera() {
+       /* async function startCamera() {
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { facingMode: 'environment' } 
@@ -620,7 +621,39 @@
                 document.getElementById('btnCamera').classList.remove('hidden');
                 document.getElementById('videoContainer').classList.add('hidden');
             }
-        }
+        }*/
+let html5QrCode;
+
+async function startCamera() {
+  const scannerDiv = document.getElementById('videoContainer');
+  scannerDiv.classList.remove('hidden');
+  document.getElementById('btnCamera').classList.add('hidden');
+
+  html5QrCode = new Html5Qrcode("video"); // l’élément <video id="video">
+
+  try {
+    await html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 250 },
+      (decodedText, decodedResult) => {
+        document.getElementById('manualInput').value = decodedText;
+        html5QrCode.stop(); // stoppe la caméra après lecture
+        alert("Code détecté : " + decodedText);
+      }
+    );
+  } catch (err) {
+    alert("Erreur lors du démarrage de la caméra : " + err);
+  }
+}
+
+function stopCamera() {
+  if (html5QrCode) {
+    html5QrCode.stop().then(() => {
+      document.getElementById('videoContainer').classList.add('hidden');
+      document.getElementById('btnCamera').classList.remove('hidden');
+    });
+  }
+}
 
         // Gestion des quantités
         function increaseQty() {
