@@ -368,49 +368,69 @@ function stopCamera() {
 
     loadInventory();
   </script>
-  <script>
+ <script>
 let html5QrCode = null;
 let currentStream = null;
 let scanTimeout = null;
+let countdown = null;
 
-function showStatus(message) {
+// 🔹 Affichage de l’état (avec compteur)
+function showStatus(message, seconds = null) {
   const readerDiv = document.getElementById("reader");
   let status = document.getElementById("scanStatus");
+
   if (!status) {
     status = document.createElement("div");
     status.id = "scanStatus";
     status.className = "scanner-status";
-    status.innerHTML = `<div class="loader"></div><span>${message}</span>`;
+    status.innerHTML = `
+      <div class="loader"></div>
+      <span id="scanText">${message}</span>
+      <div id="scanTimer" style="font-size:0.9em;color:#555;margin-top:4px;"></div>
+    `;
     readerDiv.appendChild(status);
-  } else {
-    status.querySelector("span").textContent = message;
+  }
+  document.getElementById("scanText").textContent = message;
+
+  // ⏳ compteur visuel
+  if (seconds) {
+    let remaining = seconds;
+    const timerDiv = document.getElementById("scanTimer");
+    timerDiv.textContent = `(${remaining}s)`;
+    countdown = setInterval(() => {
+      remaining--;
+      timerDiv.textContent = `(${remaining}s)`;
+      if (remaining <= 0) clearInterval(countdown);
+    }, 1000);
   }
 }
 
 function removeStatus() {
+  clearInterval(countdown);
   const status = document.getElementById("scanStatus");
   if (status) status.remove();
 }
 
-// Démarre la lecture
+// 🚀 Étape 1 : BarcodeDetector natif
 async function startCamera() {
   const readerDiv = document.getElementById("reader");
   const output = document.getElementById("manualInput");
   readerDiv.innerHTML = "";
-  showStatus("🔍 Recherche du code-barres...");
+  showStatus("🔍 Recherche du code-barres natif...", 5);
 
-  // ⚙️ Étape 1 : BarcodeDetector
-  if ('BarcodeDetector' in window) {
-    const formats = ['qr_code', 'ean_13', 'code_128', 'code_39'];
+  if ("BarcodeDetector" in window) {
+    const formats = ["qr_code", "ean_13", "code_128", "code_39"];
     const detector = new BarcodeDetector({ formats });
-    const video = document.createElement('video');
+    const video = document.createElement("video");
     video.autoplay = true;
     video.style.width = "100%";
     video.style.borderRadius = "8px";
     readerDiv.appendChild(video);
 
     try {
-      currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      currentStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+      });
       video.srcObject = currentStream;
 
       const scan = async () => {
@@ -425,39 +445,27 @@ async function startCamera() {
       };
       scan();
 
-      // ⏳ Après 5 secondes, si rien trouvé → passe au html5-qrcode
+      // après 5s → passe au html5-qrcode
       scanTimeout = setTimeout(() => {
-        console.log("⏭️ Passage à html5-qrcode (aucune lecture BarcodeDetector)");
         stopCamera();
         startHtml5QrCode();
       }, 5000);
-
     } catch (err) {
       console.warn("Erreur BarcodeDetector:", err);
       startHtml5QrCode();
     }
-
   } else {
     startHtml5QrCode();
   }
 }
 
-// ⚙️ Étape 2 : html5-qrcode
+// 🚀 Étape 2 : html5-qrcode
 async function startHtml5QrCode() {
   const readerDiv = document.getElementById("reader");
-  showStatus("⏭️ Recherche avec html5-qrcode...");
+  showStatus("📷 Recherche avec html5-qrcode...", 5);
 
   html5QrCode = new Html5Qrcode("reader");
-  const config = {
-    fps: 10,
-    qrbox: 250,
-    formatsToSupport: [
-      Html5QrcodeSupportedFormats.QR_CODE,
-      Html5QrcodeSupportedFormats.EAN_13,
-      Html5QrcodeSupportedFormats.CODE_128,
-      Html5QrcodeSupportedFormats.CODE_39
-    ]
-  };
+  const config = { fps: 10, qrbox: 250 };
 
   try {
     await html5QrCode.start(
@@ -470,83 +478,69 @@ async function startHtml5QrCode() {
       }
     );
 
-    // ⏳ Après 5 secondes sans lecture → OCR fallback
     scanTimeout = setTimeout(() => {
-      console.log("⏭️ Passage à OCR (aucune lecture html5-qrcode)");
       stopCamera();
       tryOCRFallback();
     }, 5000);
-
   } catch (err) {
     console.warn("Erreur html5-qrcode:", err);
     tryOCRFallback();
   }
 }
 
-// ✅ Code détecté
+// ✅ Code détecté → Remplit juste le champ
 function onCodeDetected(code) {
   clearTimeout(scanTimeout);
-  stopCamera();
   removeStatus();
+  stopCamera();
 
+  const readerDiv = document.getElementById("reader");
   const output = document.getElementById("manualInput");
   output.value = code;
 
-  const readerDiv = document.getElementById("reader");
   readerDiv.innerHTML = `
     <div style="text-align:center;">
       <p>✅ Code détecté : <strong>${code}</strong></p>
-      <p>Tu peux modifier ci-dessous si besoin :</p>
-      <input id="editCode" value="${code}" style="padding:8px; width:80%; font-size:1em; text-align:center;">
-      <br><br>
-      <button id="confirmBtn" style="padding:8px 16px; font-size:1em; background:#27ae60; color:white; border:none; border-radius:6px;">
-        ✅ Valider / Ajouter
+      <p>Tu peux modifier le code ou ajuster la quantité avant validation.</p>
+      <button id="closeScanBtn" 
+        style="padding:10px 20px;font-size:1em;background:#3498db;color:white;border:none;border-radius:6px;cursor:pointer;">
+        ✅ Terminer le scan
       </button>
     </div>
   `;
 
-  document.getElementById("confirmBtn").onclick = () => {
-    const finalValue = document.getElementById("editCode").value.trim();
-    output.value = finalValue;
-    handleSubmit(); // ajoute à l’inventaire
+  document.getElementById("closeScanBtn").onclick = () => {
     readerDiv.innerHTML = "";
-    alert("✅ Code ajouté : " + finalValue);
+    // l'utilisateur valide ensuite via son bouton "Ajouter au stock"
   };
 }
 
-// 🧠 Étape 3 : OCR
+// 🚀 Étape 3 : OCR
 async function tryOCRFallback() {
   removeStatus();
-  showStatus("📸 Lecture texte (OCR) en cours...");
+  showStatus("📸 Lecture texte (OCR)...");
 
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*';
-  input.capture = 'environment';
-  input.style.display = 'none';
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/*";
+  input.capture = "environment";
+  input.style.display = "none";
   document.body.appendChild(input);
 
-  input.addEventListener('change', async (e) => {
+  input.addEventListener("change", async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     showStatus("🔍 Analyse de l’image...");
 
     try {
-      const { data: { text } } = await Tesseract.recognize(file, 'fra');
-      const cleaned = text.replace(/\s+/g, '').trim();
-
-      if (cleaned.length > 3) {
-        removeStatus();
-        onCodeDetected(cleaned);
-      } else {
-        removeStatus();
-        alert("❌ Aucun texte lisible détecté.");
-      }
+      const { data: { text } } = await Tesseract.recognize(file, "fra");
+      const cleaned = text.replace(/\s+/g, "").trim();
+      if (cleaned.length > 3) onCodeDetected(cleaned);
+      else alert("❌ Aucun texte lisible détecté.");
     } catch (e) {
-      console.error("Erreur OCR:", e);
-      removeStatus();
       alert("Erreur OCR : " + e.message);
     } finally {
+      removeStatus();
       input.remove();
     }
   });
@@ -557,20 +551,20 @@ async function tryOCRFallback() {
 // 🧹 Arrêt propre
 function stopCamera() {
   clearTimeout(scanTimeout);
+  clearInterval(countdown);
   removeStatus();
 
   if (currentStream) {
-    currentStream.getTracks().forEach(track => track.stop());
+    currentStream.getTracks().forEach((t) => t.stop());
     currentStream = null;
   }
   if (html5QrCode) {
-    html5QrCode.stop().catch(()=>{}).finally(()=>{
-      html5QrCode = null;
-    });
+    html5QrCode.stop().catch(() => {}).finally(() => (html5QrCode = null));
   }
-  document.getElementById("reader").innerHTML = "";
 }
 </script>
+
+
 <script src="https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </body>
