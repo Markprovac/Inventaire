@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%231e3a8a'/%3E%3Cpath fill='white' d='M96 48L48 72v48l48 24 48-24V72L96 48zm0 16l32 16v32l-32 16-32-16V80l32-16z'/%3E%3C/svg%3E">
   <title>Stock Pièces Auto</title>
- 
+  <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh}
@@ -63,33 +63,8 @@
     .item-code{font-family:monospace;font-weight:600;color:#111827}
     .item-qty{background:#dbeafe;color:#1e3a8a;font-weight:bold;padding:8px 16px;border-radius:8px}
   </style>
-  <style>
-/* Animation de chargement */
-.scanner-status {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  color: #003366;
-  font-size: 1em;
-  margin-top: 10px;
-}
-.loader {
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #3498db;
-  border-radius: 50%;
-  width: 30px;
-  height: 30px;
-  animation: spin 1s linear infinite;
-  margin-bottom: 8px;
-}
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-</style>
 </head>
-
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <body>
   <!-- Page d'accueil -->
   <div id="home">
@@ -198,7 +173,7 @@
     }
 
 // Caméra + lecture code
-/*async function startCamera() {
+async function startCamera() {
   const readerDiv = document.getElementById("reader");
   const output = document.getElementById("manualInput");
   readerDiv.innerHTML = "";
@@ -316,7 +291,7 @@ function stopCamera() {
     });
   }
   document.getElementById("reader").innerHTML = "";
-}*/
+}
 
     // Quantité
     function increaseQty(){const i=document.getElementById('quantity');i.value=parseInt(i.value)+1;}
@@ -368,211 +343,6 @@ function stopCamera() {
 
     loadInventory();
   </script>
-  <script>
-let html5QrCode = null;
-let currentStream = null;
-let scanTimeout = null;
-
-function showStatus(message) {
-  const readerDiv = document.getElementById("reader");
-  let status = document.getElementById("scanStatus");
-  if (!status) {
-    status = document.createElement("div");
-    status.id = "scanStatus";
-    status.className = "scanner-status";
-    status.innerHTML = `<div class="loader"></div><span>${message}</span>`;
-    readerDiv.appendChild(status);
-  } else {
-    status.querySelector("span").textContent = message;
-  }
-}
-
-function removeStatus() {
-  const status = document.getElementById("scanStatus");
-  if (status) status.remove();
-}
-
-// Démarre la lecture
-async function startCamera() {
-  const readerDiv = document.getElementById("reader");
-  const output = document.getElementById("manualInput");
-  readerDiv.innerHTML = "";
-  showStatus("🔍 Recherche du code-barres...");
-
-  // ⚙️ Étape 1 : BarcodeDetector
-  if ('BarcodeDetector' in window) {
-    const formats = ['qr_code', 'ean_13', 'code_128', 'code_39'];
-    const detector = new BarcodeDetector({ formats });
-    const video = document.createElement('video');
-    video.autoplay = true;
-    video.style.width = "100%";
-    video.style.borderRadius = "8px";
-    readerDiv.appendChild(video);
-
-    try {
-      currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      video.srcObject = currentStream;
-
-      const scan = async () => {
-        if (!currentStream?.active) return;
-        const barcodes = await detector.detect(video);
-        if (barcodes.length > 0) {
-          const code = barcodes[0].rawValue.trim();
-          onCodeDetected(code);
-          return;
-        }
-        requestAnimationFrame(scan);
-      };
-      scan();
-
-      // ⏳ Après 5 secondes, si rien trouvé → passe au html5-qrcode
-      scanTimeout = setTimeout(() => {
-        console.log("⏭️ Passage à html5-qrcode (aucune lecture BarcodeDetector)");
-        stopCamera();
-        startHtml5QrCode();
-      }, 5000);
-
-    } catch (err) {
-      console.warn("Erreur BarcodeDetector:", err);
-      startHtml5QrCode();
-    }
-
-  } else {
-    startHtml5QrCode();
-  }
-}
-
-// ⚙️ Étape 2 : html5-qrcode
-async function startHtml5QrCode() {
-  const readerDiv = document.getElementById("reader");
-  showStatus("⏭️ Recherche avec html5-qrcode...");
-
-  html5QrCode = new Html5Qrcode("reader");
-  const config = {
-    fps: 10,
-    qrbox: 250,
-    formatsToSupport: [
-      Html5QrcodeSupportedFormats.QR_CODE,
-      Html5QrcodeSupportedFormats.EAN_13,
-      Html5QrcodeSupportedFormats.CODE_128,
-      Html5QrcodeSupportedFormats.CODE_39
-    ]
-  };
-
-  try {
-    await html5QrCode.start(
-      { facingMode: "environment" },
-      config,
-      (decodedText) => {
-        const code = decodedText.trim();
-        onCodeDetected(code);
-        html5QrCode.stop();
-      }
-    );
-
-    // ⏳ Après 5 secondes sans lecture → OCR fallback
-    scanTimeout = setTimeout(() => {
-      console.log("⏭️ Passage à OCR (aucune lecture html5-qrcode)");
-      stopCamera();
-      tryOCRFallback();
-    }, 5000);
-
-  } catch (err) {
-    console.warn("Erreur html5-qrcode:", err);
-    tryOCRFallback();
-  }
-}
-
-// ✅ Code détecté
-function onCodeDetected(code) {
-  clearTimeout(scanTimeout);
-  stopCamera();
-  removeStatus();
-
-  const output = document.getElementById("manualInput");
-  output.value = code;
-
-  const readerDiv = document.getElementById("reader");
-  readerDiv.innerHTML = `
-    <div style="text-align:center;">
-      <p>✅ Code détecté : <strong>${code}</strong></p>
-      <p>Tu peux modifier ci-dessous si besoin :</p>
-      <input id="editCode" value="${code}" style="padding:8px; width:80%; font-size:1em; text-align:center;">
-      <br><br>
-      <button id="confirmBtn" style="padding:8px 16px; font-size:1em; background:#27ae60; color:white; border:none; border-radius:6px;">
-        ✅ Valider / Ajouter
-      </button>
-    </div>
-  `;
-
-  document.getElementById("confirmBtn").onclick = () => {
-    const finalValue = document.getElementById("editCode").value.trim();
-    output.value = finalValue;
-    handleSubmit(); // ajoute à l’inventaire
-    readerDiv.innerHTML = "";
-    alert("✅ Code ajouté : " + finalValue);
-  };
-}
-
-// 🧠 Étape 3 : OCR
-async function tryOCRFallback() {
-  removeStatus();
-  showStatus("📸 Lecture texte (OCR) en cours...");
-
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*';
-  input.capture = 'environment';
-  input.style.display = 'none';
-  document.body.appendChild(input);
-
-  input.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    showStatus("🔍 Analyse de l’image...");
-
-    try {
-      const { data: { text } } = await Tesseract.recognize(file, 'fra');
-      const cleaned = text.replace(/\s+/g, '').trim();
-
-      if (cleaned.length > 3) {
-        removeStatus();
-        onCodeDetected(cleaned);
-      } else {
-        removeStatus();
-        alert("❌ Aucun texte lisible détecté.");
-      }
-    } catch (e) {
-      console.error("Erreur OCR:", e);
-      removeStatus();
-      alert("Erreur OCR : " + e.message);
-    } finally {
-      input.remove();
-    }
-  });
-
-  input.click();
-}
-
-// 🧹 Arrêt propre
-function stopCamera() {
-  clearTimeout(scanTimeout);
-  removeStatus();
-
-  if (currentStream) {
-    currentStream.getTracks().forEach(track => track.stop());
-    currentStream = null;
-  }
-  if (html5QrCode) {
-    html5QrCode.stop().catch(()=>{}).finally(()=>{
-      html5QrCode = null;
-    });
-  }
-  document.getElementById("reader").innerHTML = "";
-}
-</script>
-<script src="https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </body>
 </html>
 
