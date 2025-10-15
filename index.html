@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%231e3a8a'/%3E%3Cpath fill='white' d='M96 48L48 72v48l48 24 48-24V72L96 48zm0 16l32 16v32l-32 16-32-16V80l32-16z'/%3E%3C/svg%3E">
   <title>Stock Pièces Auto</title>
-  <script src="https://unpkg.com/html5-qrcode"></script>
+ <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh}
@@ -171,13 +171,14 @@
       document.getElementById('inventory').classList.remove('hidden');
       displayInventory();
     }
-
+let html5QrCode = null;
+let stream = null;
 // Caméra + lecture code
-async function startCamera() {
-  const readerDiv = document.getElementById("reader");
-  const output = document.getElementById("manualInput");
+async function startScan() {
+  const output = document.getElementById('manualInput');
+  const readerDiv = document.getElementById('reader');
 
-  // 🧠 Si BarcodeDetector est disponible (Android natif)
+  // 🔍 Vérifie si BarcodeDetector est dispo (Android Chrome, Edge, etc.)
   if ('BarcodeDetector' in window) {
     const formats = ['qr_code', 'ean_13', 'code_128', 'code_39'];
     const detector = new BarcodeDetector({ formats });
@@ -189,20 +190,17 @@ async function startCamera() {
     readerDiv.appendChild(video);
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
       video.srcObject = stream;
 
       const scan = async () => {
-        if (!stream.active) return;
+        if (!stream) return;
         const barcodes = await detector.detect(video);
         if (barcodes.length > 0) {
           const code = barcodes[0].rawValue;
           output.value = code;
-          handleSubmit(); // ajoute directement à l’inventaire
           alert("✅ Code détecté : " + code);
-          // stoppe la caméra proprement
-          stream.getTracks().forEach(track => track.stop());
-          readerDiv.innerHTML = "";
+          stopScan();
         } else {
           requestAnimationFrame(scan);
         }
@@ -211,10 +209,9 @@ async function startCamera() {
     } catch (err) {
       alert("Erreur caméra (BarcodeDetector): " + err);
     }
-  }
-
-  // 🧩 Sinon, fallback sur html5-qrcode (iPhone, Safari…)
+  } 
   else {
+    // 🧩 Mode compatibilité (iPhone ou anciens navigateurs)
     html5QrCode = new Html5Qrcode("reader");
     const config = {
       fps: 10,
@@ -233,9 +230,8 @@ async function startCamera() {
         config,
         (decodedText) => {
           output.value = decodedText;
-          handleSubmit(); // ajoute direct
           alert("✅ Code détecté : " + decodedText);
-          html5QrCode.stop();
+          stopScan();
         }
       );
     } catch (err) {
@@ -244,14 +240,19 @@ async function startCamera() {
   }
 }
 
-function stopCamera() {
-  // Stop html5-qrcode s’il est actif
+function stopScan() {
+  // 🚫 Stop du flux natif
+  if (stream) {
+    stream.getTracks().forEach(track => track.stop());
+    stream = null;
+  }
+  // 🚫 Stop du lecteur html5-qrcode
   if (html5QrCode) {
     html5QrCode.stop().catch(()=>{}).finally(()=>{
       document.getElementById("reader").innerHTML = "";
     });
   }
-  // Nettoyage du lecteur
+  // Nettoyage visuel
   document.getElementById("reader").innerHTML = "";
 }
 
