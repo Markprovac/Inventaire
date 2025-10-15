@@ -64,7 +64,7 @@
     .item-qty{background:#dbeafe;color:#1e3a8a;font-weight:bold;padding:8px 16px;border-radius:8px}
   </style>
 </head>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
 <body>
   <!-- Page d'accueil -->
   <div id="home">
@@ -173,11 +173,9 @@
     }
 
 // Caméra + lecture code
-// Caméra + lecture code
 async function startCamera() {
   const readerDiv = document.getElementById("reader");
   const output = document.getElementById("manualInput");
-  readerDiv.innerHTML = "";
 
   // 🧠 Si BarcodeDetector est disponible (Android natif)
   if ('BarcodeDetector' in window) {
@@ -187,6 +185,7 @@ async function startCamera() {
     video.autoplay = true;
     video.style.width = "100%";
     video.style.borderRadius = "8px";
+    readerDiv.innerHTML = "";
     readerDiv.appendChild(video);
 
     try {
@@ -201,6 +200,7 @@ async function startCamera() {
           output.value = code;
           handleSubmit(); // ajoute directement à l’inventaire
           alert("✅ Code détecté : " + code);
+          // stoppe la caméra proprement
           stream.getTracks().forEach(track => track.stop());
           readerDiv.innerHTML = "";
         } else {
@@ -209,8 +209,7 @@ async function startCamera() {
       };
       scan();
     } catch (err) {
-      console.warn("Erreur caméra (BarcodeDetector):", err);
-      await tryOCRFallback(); // 🔁 Fallback OCR
+      alert("Erreur caméra (BarcodeDetector): " + err);
     }
   }
 
@@ -240,59 +239,22 @@ async function startCamera() {
         }
       );
     } catch (err) {
-      console.warn("Erreur caméra (html5-qrcode):", err);
-      await tryOCRFallback(); // 🔁 Fallback OCR
+      alert("Erreur caméra (html5-qrcode): " + err);
     }
   }
 }
 
-// 🧠 OCR de secours avec Tesseract.js
-async function tryOCRFallback() {
-  alert("📸 Lecture code-barres impossible. Essayons la lecture texte (OCR).");
-
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*';
-  input.capture = 'environment';
-  input.style.display = 'none';
-  document.body.appendChild(input);
-
-  input.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    alert("🔍 Analyse de l’image en cours, patiente un instant...");
-
-    try {
-      const { data: { text } } = await Tesseract.recognize(file, 'fra');
-      const cleaned = text.replace(/\s+/g, '').trim();
-
-      if (cleaned.length > 3) {
-        document.getElementById('manualInput').value = cleaned;
-        handleSubmit();
-        alert("✅ Texte détecté : " + cleaned);
-      } else {
-        alert("❌ Aucun texte lisible détecté.");
-      }
-    } catch (e) {
-      console.error(e);
-      alert("Erreur OCR : " + e.message);
-    } finally {
-      input.remove();
-    }
-  });
-
-  input.click(); // Ouvre la caméra pour prendre la photo
-}
-
 function stopCamera() {
-  if (window.html5QrCode) {
+  // Stop html5-qrcode s’il est actif
+  if (html5QrCode) {
     html5QrCode.stop().catch(()=>{}).finally(()=>{
       document.getElementById("reader").innerHTML = "";
     });
   }
+  // Nettoyage du lecteur
   document.getElementById("reader").innerHTML = "";
 }
+
     // Quantité
     function increaseQty(){const i=document.getElementById('quantity');i.value=parseInt(i.value)+1;}
     function decreaseQty(){const i=document.getElementById('quantity');i.value=Math.max(1,parseInt(i.value)-1);}
