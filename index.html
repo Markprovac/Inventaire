@@ -171,14 +171,13 @@
       document.getElementById('inventory').classList.remove('hidden');
       displayInventory();
     }
-let html5QrCode = null;
-let stream = null;
-// Caméra + lecture code
-async function startScan() {
-  const output = document.getElementById('manualInput');
-  const readerDiv = document.getElementById('reader');
 
-  // 🔍 Vérifie si BarcodeDetector est dispo (Android Chrome, Edge, etc.)
+// Caméra + lecture code
+async function startCamera() {
+  const readerDiv = document.getElementById("reader");
+  const output = document.getElementById("manualInput");
+
+  // 🧠 Si BarcodeDetector est disponible (Android natif)
   if ('BarcodeDetector' in window) {
     const formats = ['qr_code', 'ean_13', 'code_128', 'code_39'];
     const detector = new BarcodeDetector({ formats });
@@ -190,17 +189,20 @@ async function startScan() {
     readerDiv.appendChild(video);
 
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
       video.srcObject = stream;
 
       const scan = async () => {
-        if (!stream) return;
+        if (!stream.active) return;
         const barcodes = await detector.detect(video);
         if (barcodes.length > 0) {
           const code = barcodes[0].rawValue;
           output.value = code;
+          handleSubmit(); // ajoute directement à l’inventaire
           alert("✅ Code détecté : " + code);
-          stopScan();
+          // stoppe la caméra proprement
+          stream.getTracks().forEach(track => track.stop());
+          readerDiv.innerHTML = "";
         } else {
           requestAnimationFrame(scan);
         }
@@ -209,9 +211,10 @@ async function startScan() {
     } catch (err) {
       alert("Erreur caméra (BarcodeDetector): " + err);
     }
-  } 
+  }
+
+  // 🧩 Sinon, fallback sur html5-qrcode (iPhone, Safari…)
   else {
-    // 🧩 Mode compatibilité (iPhone ou anciens navigateurs)
     html5QrCode = new Html5Qrcode("reader");
     const config = {
       fps: 10,
@@ -230,8 +233,9 @@ async function startScan() {
         config,
         (decodedText) => {
           output.value = decodedText;
+          handleSubmit(); // ajoute direct
           alert("✅ Code détecté : " + decodedText);
-          stopScan();
+          html5QrCode.stop();
         }
       );
     } catch (err) {
@@ -240,21 +244,17 @@ async function startScan() {
   }
 }
 
-function stopScan() {
-  // 🚫 Stop du flux natif
-  if (stream) {
-    stream.getTracks().forEach(track => track.stop());
-    stream = null;
-  }
-  // 🚫 Stop du lecteur html5-qrcode
+function stopCamera() {
+  // Stop html5-qrcode s’il est actif
   if (html5QrCode) {
     html5QrCode.stop().catch(()=>{}).finally(()=>{
       document.getElementById("reader").innerHTML = "";
     });
   }
-  // Nettoyage visuel
+  // Nettoyage du lecteur
   document.getElementById("reader").innerHTML = "";
 }
+
 
     // Quantité
     function increaseQty(){const i=document.getElementById('quantity');i.value=parseInt(i.value)+1;}
