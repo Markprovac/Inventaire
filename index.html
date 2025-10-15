@@ -198,7 +198,7 @@ async function startCamera() {
         if (barcodes.length > 0) {
           const code = barcodes[0].rawValue;
           output.value = code;
-          handleSubmit(); // ajoute directement à l’inventaire
+          
           alert("✅ Code détecté : " + code);
           stream.getTracks().forEach(track => track.stop());
           readerDiv.innerHTML = "";
@@ -233,7 +233,7 @@ async function startCamera() {
         config,
         (decodedText) => {
           output.value = decodedText;
-          handleSubmit(); // ajoute direct
+          
           alert("✅ Code détecté : " + decodedText);
           html5QrCode.stop();
         }
@@ -268,7 +268,7 @@ async function tryOCRFallback() {
 
       if (cleaned.length > 3) {
         document.getElementById('manualInput').value = cleaned;
-        handleSubmit();
+        
         alert("✅ Texte détecté : " + cleaned);
       } else {
         alert("❌ Aucun texte lisible détecté.");
