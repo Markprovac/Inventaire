@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Stock Fourgon SAV</title>
+  <style>
+    :root{
+      --bg:#0f172a;
+      --card:#111827;
+      --card2:#1f2937;
+      --text:#f9fafb;
+      --muted:#cbd5e1;
+      --line:#334155;
+      --accent:#38bdf8;
+      --ok:#22c55e;
+      --warn:#f59e0b;
+      --danger:#ef4444;
+      --white:#ffffff;
+      --shadow:0 10px 30px rgba(0,0,0,.30);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+      background:linear-gradient(180deg,#0f172a,#111827);
+      color:var(--text);
+      min-height:100vh;
+    }
+    header{
+      position:sticky;
+      top:0;
+      z-index:20;
+      background:rgba(15,23,42,.96);
+      backdrop-filter:blur(10px);
+      border-bottom:1px solid var(--line);
+      padding:12px 14px;
+    }
+    .topbar{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      max-width:980px;
+      margin:auto;
+    }
+    .brand{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      min-width:0;
+    }
+    .brand h1{
+      font-size:18px;
+      margin:0;
+      letter-spacing:.2px;
+    }
+    .brand small{
+      color:var(--muted);
+      font-size:12px;
+    }
+    main{
+      width:100%;
+      max-width:980px;
+      margin:0 auto;
+      padding:14px;
+      padding-bottom:92px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:12px;
+    }
+    @media (min-width:760px){
+      .grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+      .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
+    .card{
+      background:rgba(17,24,39,.92);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:14px;
+      margin-bottom:14px;
+    }
+    .bigbtn{
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:18px 12px;
+      background:linear-gradient(180deg,#1f2937,#111827);
+      color:var(--text);
+      font-weight:800;
+      font-size:16px;
+      min-height:92px;
+      display:flex;
+      flex-direction:column;
+      align-items:flex-start;
+      justify-content:center;
+      gap:8px;
+      text-align:left;
+      box-shadow:var(--shadow);
+    }
+    .bigbtn span:first-child{font-size:27px;line-height:1}
+    .bigbtn small{font-weight:600;color:var(--muted)}
+    .btnrow{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+    }
+    button,.buttonlike{
+      border:0;
+      border-radius:13px;
+      padding:11px 13px;
+      background:var(--accent);
+      color:#04121a;
+      font-weight:800;
+      font-size:14px;
+      cursor:pointer;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+    }
+    button.secondary{background:#334155;color:var(--text);border:1px solid #475569}
+    button.ok{background:var(--ok);color:#04120a}
+    button.warn{background:var(--warn);color:#1a1000}
+    button.danger{background:var(--danger);color:white}
+    button.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    .hidden{display:none!important}
+    input,select,textarea{
+      width:100%;
+      border:1px solid #475569;
+      background:#0b1220;
+      color:var(--text);
+      border-radius:13px;
+      padding:12px;
+      font-size:16px;
+      outline:none;
+    }
+    textarea{min-height:88px;resize:vertical}
+    label{
+      display:block;
+      margin:0 0 6px;
+      color:var(--muted);
+      font-size:13px;
+      font-weight:700;
+    }
+    .field{margin-bottom:12px}
+    .form-grid{
+      display:grid;
+      gap:0 12px;
+    }
+    .muted{color:var(--muted)}
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 9px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      color:var(--muted);
+      font-size:12px;
+      font-weight:800;
+      background:#0b1220;
+    }
+    .pill.ok{border-color:rgba(34,197,94,.4);color:#bbf7d0}
+    .pill.warn{border-color:rgba(245,158,11,.45);color:#fde68a}
+    .pill.danger{border-color:rgba(239,68,68,.5);color:#fecaca}
+    .list{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .item{
+      border:1px solid var(--line);
+      background:rgba(31,41,55,.72);
+      border-radius:16px;
+      padding:12px;
+      display:grid;
+      gap:10px;
+    }
+    .item-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:10px;
+    }
+    .item-title{
+      font-weight:900;
+      font-size:16px;
+      word-break:break-word;
+    }
+    .item-meta{
+      color:var(--muted);
+      font-size:13px;
+      margin-top:3px;
+      line-height:1.35;
+    }
+    .thumb{
+      width:72px;
+      height:72px;
+      object-fit:cover;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:#0b1220;
+      flex:0 0 auto;
+    }
+    .detail-photo{
+      width:100%;
+      max-height:280px;
+      object-fit:contain;
+      border-radius:16px;
+      background:#0b1220;
+      border:1px solid var(--line);
+    }
+    .qty{
+      font-size:22px;
+      font-weight:950;
+    }
+    .qty.low{color:#fbbf24}
+    .qty.zero{color:#fca5a5}
+    .section-title{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin:0 0 12px;
+    }
+    .section-title h2{
+      margin:0;
+      font-size:19px;
+    }
+    .scanner-wrap{
+      position:relative;
+      overflow:hidden;
+      border-radius:18px;
+      border:1px solid var(--line);
+      background:#050816;
+      min-height:280px;
+    }
+    video{
+      width:100%;
+      max-height:58vh;
+      display:block;
+      background:#050816;
+    }
+    .scan-frame{
+      pointer-events:none;
+      position:absolute;
+      inset:18%;
+      border:3px solid rgba(56,189,248,.9);
+      border-radius:16px;
+      box-shadow:0 0 0 999px rgba(0,0,0,.25);
+    }
+    .scan-line{
+      position:absolute;
+      left:20%;
+      right:20%;
+      top:50%;
+      height:2px;
+      background:#38bdf8;
+      box-shadow:0 0 14px #38bdf8;
+    }
+    .notice{
+      border:1px solid rgba(56,189,248,.35);
+      background:rgba(56,189,248,.10);
+      color:#e0f2fe;
+      padding:12px;
+      border-radius:15px;
+      line-height:1.45;
+      margin-bottom:12px;
+    }
+    .notice.warn{
+      border-color:rgba(245,158,11,.45);
+      background:rgba(245,158,11,.12);
+      color:#fffbeb;
+    }
+    .notice.danger{
+      border-color:rgba(239,68,68,.45);
+      background:rgba(239,68,68,.12);
+      color:#fee2e2;
+    }
+    .bottom-nav{
+      position:fixed;
+      bottom:0;
+      left:0;
+      right:0;
+      z-index:30;
+      background:rgba(15,23,42,.97);
+      border-top:1px solid var(--line);
+      padding:9px;
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:8px;
+    }
+    .bottom-nav button{
+      padding:9px 4px;
+      font-size:12px;
+      border-radius:13px;
+      background:#1f2937;
+      color:var(--text);
+      border:1px solid var(--line);
+      flex-direction:column;
+      gap:2px;
+    }
+    .bottom-nav button.active{
+      background:var(--accent);
+      color:#04121a;
+    }
+    .empty{
+      text-align:center;
+      color:var(--muted);
+      padding:24px 8px;
+      border:1px dashed var(--line);
+      border-radius:16px;
+    }
+    .split{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
+    }
+    @media (min-width:760px){
+      .split{grid-template-columns:1fr 1fr}
+    }
+    .kpi{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:8px;
+    }
+    .kpi div{
+      background:#0b1220;
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:10px;
+    }
+    .kpi strong{
+      display:block;
+      font-size:20px;
+    }
+    .kpi span{
+      color:var(--muted);
+      font-size:12px;
+      font-weight:700;
+    }
+    .ocr-preview{
+      width:100%;
+      max-height:260px;
+      object-fit:contain;
+      border-radius:16px;
+      border:1px solid var(--line);
+      background:#0b1220;
+      margin-top:8px;
+    }
+    .progress{
+      height:12px;
+      width:100%;
+      background:#0b1220;
+      border:1px solid var(--line);
+      border-radius:999px;
+      overflow:hidden;
+    }
+    .progress div{
+      height:100%;
+      width:0%;
+      background:var(--accent);
+      transition:width .2s;
+    }
+    .mini{
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.35;
+    }
+    .danger-zone{
+      border-color:rgba(239,68,68,.45);
+    }
+    .searchbar{
+      position:sticky;
+      top:72px;
+      z-index:12;
+      background:rgba(15,23,42,.96);
+      padding:8px 0 12px;
+    }
+    .toast{
+      position:fixed;
+      left:12px;
+      right:12px;
+      bottom:78px;
+      background:#f8fafc;
+      color:#0f172a;
+      border-radius:16px;
+      padding:13px;
+      font-weight:900;
+      box-shadow:var(--shadow);
+      z-index:99;
+      transform:translateY(120px);
+      opacity:0;
+      transition:.25s;
+      text-align:center;
+    }
+    .toast.show{
+      transform:translateY(0);
+      opacity:1;
+    }
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:13px;
+    }
+    th,td{
+      border-bottom:1px solid var(--line);
+      padding:8px 6px;
+      text-align:left;
+      vertical-align:top;
+    }
+    th{color:var(--muted)}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topbar">
+      <div class="brand">
+        <h1>🚐 Stock Fourgon SAV</h1>
+        <small id="headerSub">Inventaire pièces détachées</small>
+      </div>
+      <button class="secondary" onclick="go('home')">Accueil</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="view-home">
+      <div class="card">
+        <div class="section-title">
+          <h2>Tableau de bord</h2>
+          <span class="pill" id="lastSavePill">Sauvegarde locale</span>
+        </div>
+        <div class="kpi">
+          <div><strong id="kpiParts">0</strong><span>Pièces</span></div>
+          <div><strong id="kpiQty">0</strong><span>Qté totale</span></div>
+          <div><strong id="kpiLow">0</strong><span>À recommander</span></div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <button class="bigbtn" onclick="startScan('lookup')"><span>📷</span>Scanner<small>Code-barres pièce</small></button>
+        <button class="bigbtn" onclick="startScan('entree')"><span>➕</span>Entrée stock<small>Scanner puis ajouter</small></button>
+        <button class="bigbtn" onclick="startScan('sortie')"><span>➖</span>Sortie stock<small>Scanner puis retirer</small></button>
+        <button class="bigbtn" onclick="go('ocr')"><span>🏷️</span>Lire étiquette<small>OCR si code-barres illisible</small></button>
+        <button class="bigbtn" onclick="newPart()"><span>🧩</span>Ajouter pièce<small>Saisie manuelle</small></button>
+        <button class="bigbtn" onclick="go('inventory')"><span>📦</span>Inventaire<small>Recherche et fiches</small></button>
+        <button class="bigbtn" onclick="go('low')"><span>⚠️</span>À commander<small>Stock mini atteint</small></button>
+        <button class="bigbtn" onclick="go('tools')"><span>🗂️</span>Import / Export<small>CSV et sauvegarde</small></button>
+      </div>
+
+      <div class="card">
+        <h2 style="margin-top:0">Derniers mouvements</h2>
+        <div id="recentMoves" class="list"></div>
+      </div>
+    </section>
+
+    <section id="view-scan" class="hidden">
+      <div class="card">
+        <div class="section-title">
+          <h2 id="scanTitle">Scanner</h2>
+          <button class="secondary" onclick="stopScanner();go('home')">Fermer</button>
+        </div>
+        <div id="scanSupport" class="notice"></div>
+        <div class="scanner-wrap">
+          <video id="video" playsinline muted></video>
+          <div class="scan-frame"></div>
+          <div class="scan-line"></div>
+        </div>
+        <div class="field" style="margin-top:12px">
+          <label>Code-barres non lu ? Saisis la référence ou le code manuellement</label>
+          <input id="manualCode" placeholder="Ex : 123456789, REF-ABC..." />
+        </div>
+        <div class="btnrow">
+          <button onclick="manualScan()">Valider le code</button>
+          <button class="secondary" onclick="go('ocr')">Lire l'étiquette OCR</button>
+          <button class="ghost" onclick="newPart()">Ajouter sans code-barres</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-ocr" class="hidden">
+      <div class="card">
+        <div class="section-title">
+          <h2>Lecture étiquette OCR</h2>
+          <button class="secondary" onclick="go('home')">Retour</button>
+        </div>
+        <div class="notice warn">
+          L'OCR sert quand le code-barres ne passe pas. Prends l'étiquette bien droite, bien éclairée, puis vérifie le texte avant d'enregistrer.
+        </div>
+        <div class="field">
+          <label>Photo de l'étiquette</label>
+          <input id="ocrImageInput" type="file" accept="image/*" capture="environment" onchange="previewOcrImage(event)" />
+          <img id="ocrPreview" class="ocr-preview hidden" alt="Prévisualisation OCR" />
+        </div>
+        <div class="btnrow">
+          <button onclick="runOCR()">Lire l'étiquette</button>
+          <button class="secondary" onclick="newPartFromOCR()">Créer une fiche avec ce texte</button>
+        </div>
+        <div id="ocrProgressBox" class="hidden" style="margin-top:12px">
+          <div class="progress"><div id="ocrProgress"></div></div>
+          <p id="ocrStatus" class="mini">Analyse en cours...</p>
+        </div>
+        <div class="field" style="margin-top:12px">
+          <label>Texte détecté / à corriger</label>
+          <textarea id="ocrText" placeholder="Le texte lu sur l'étiquette apparaîtra ici. Tu peux le corriger avant de créer la fiche."></textarea>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-inventory" class="hidden">
+      <div class="searchbar">
+        <input id="searchInput" placeholder="Rechercher : référence, désignation, marque, emplacement..." oninput="renderInventory()" />
+      </div>
+      <div class="card">
+        <div class="section-title">
+          <h2>Inventaire</h2>
+          <button onclick="newPart()">+ Pièce</button>
+        </div>
+        <div id="inventoryList" class="list"></div>
+      </div>
+    </section>
+
+    <section id="view-low" class="hidden">
+      <div class="card">
+        <div class="section-title">
+          <h2>Pièces à recommander</h2>
+          <button class="secondary" onclick="go('inventory')">Inventaire</button>
+        </div>
+        <div id="lowList" class="list"></div>
+      </div>
+    </section>
+
+    <section id="view-detail" class="hidden">
+      <div class="card">
+        <div class="section-title">
+          <h2>Fiche pièce</h2>
+          <button class="secondary" onclick="go('inventory')">Retour</button>
+        </div>
+        <div id="detailContent"></div>
+      </div>
+    </section>
+
+    <section id="view-form" class="hidden">
+      <div class="card">
+        <div class="section-title">
+          <h2 id="formTitle">Ajouter une pièce</h2>
+          <button class="secondary" onclick="go(previousView || 'home')">Annuler</button>
+        </div>
+        <form id="partForm" onsubmit="savePart(event)">
+          <input type="hidden" id="partId" />
+          <div class="form-grid">
+            <div class="field">
+              <label>Code-barres</label>
+              <input id="fBarcode" placeholder="Scan ou saisie manuelle" />
+            </div>
+            <div class="field">
+              <label>Référence pièce</label>
+              <input id="fReference" placeholder="Ex : 985421" />
+            </div>
+            <div class="field">
+              <label>Désignation *</label>
+              <input id="fDesignation" required placeholder="Ex : Capteur fin de course" />
+            </div>
+            <div class="field">
+              <label>Type de pièce</label>
+              <input id="fType" list="typeList" placeholder="Ex : Capteur, carte, courroie..." />
+              <datalist id="typeList">
+                <option>Capteur</option><option>Carte électronique</option><option>Courroie</option><option>Fusible</option>
+                <option>Joint</option><option>Flexible</option><option>Vérin</option><option>Moteur</option>
+                <option>Contacteur</option><option>Interrupteur</option><option>Raccord</option><option>Roulement</option>
+              </datalist>
+            </div>
+            <div class="field">
+              <label>Marque</label>
+              <input id="fBrand" placeholder="Ex : Corghi, Werther, Ravaglioli..." />
+            </div>
+            <div class="field">
+              <label>Machine concernée</label>
+              <input id="fMachine" list="machineList" placeholder="Pont, démonte-pneu, équilibreuse..." />
+              <datalist id="machineList">
+                <option>Pont élévateur</option><option>Démonte-pneu</option><option>Équilibreuse</option>
+                <option>Compresseur</option><option>Géométrie</option><option>Climatisation</option><option>Divers</option>
+              </datalist>
+            </div>
+            <div class="field">
+              <label>Emplacement fourgon</label>
+              <input id="fLocation" placeholder="Ex : Bac 3, tiroir gauche..." />
+            </div>
+            <div class="field">
+              <label>Fournisseur</label>
+              <input id="fSupplier" placeholder="Ex : Dépôt, fournisseur..." />
+            </div>
+            <div class="field">
+              <label>Quantité actuelle</label>
+              <input id="fQty" type="number" min="0" step="1" value="0" />
+            </div>
+            <div class="field">
+              <label>Stock minimum</label>
+              <input id="fMinQty" type="number" min="0" step="1" value="0" />
+            </div>
+            <div class="field">
+              <label>Prix approximatif</label>
+              <input id="fPrice" type="text" inputmode="decimal" placeholder="Ex : 12,50" />
+            </div>
+            <div class="field">
+              <label>Photo de la pièce</label>
+              <input id="fPhoto" type="file" accept="image/*" capture="environment" onchange="loadPartPhoto(event)" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Texte étiquette / notes</label>
+            <textarea id="fNotes" placeholder="Compatibilité, référence fabricant, modèle machine, infos utiles..."></textarea>
+          </div>
+          <img id="photoPreview" class="detail-photo hidden" alt="Photo pièce" />
+          <div class="btnrow" style="margin-top:12px">
+            <button type="submit" class="ok">Enregistrer</button>
+            <button type="button" class="secondary" onclick="clearForm()">Vider</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section id="view-move" class="hidden">
+      <div class="card">
+        <div class="section-title">
+          <h2 id="moveTitle">Mouvement</h2>
+          <button class="secondary" onclick="go('detail')">Annuler</button>
+        </div>
+        <div id="movePartSummary" class="notice"></div>
+        <div class="field">
+          <label id="moveQtyLabel">Quantité</label>
+          <input id="moveQty" type="number" min="1" step="1" value="1" />
+        </div>
+        <div class="field">
+          <label>Note intervention / client / motif</label>
+          <textarea id="moveNote" placeholder="Ex : Garage Durand, remplacé sur pont 2 colonnes..."></textarea>
+        </div>
+        <div class="btnrow">
+          <button id="moveValidateBtn" onclick="validateMove()" class="ok">Valider</button>
+          <button class="secondary" onclick="showDetail(currentPartId)">Retour fiche</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-history" class="hidden">
+      <div class="card">
+        <div class="section-title">
+          <h2>Historique</h2>
+          <button class="secondary" onclick="go('home')">Accueil</button>
+        </div>
+        <div id="historyList" class="list"></div>
+      </div>
+    </section>
+
+    <section id="view-tools" class="hidden">
+      <div class="card">
+        <div class="section-title">
+          <h2>Import / Export</h2>
+          <button class="secondary" onclick="go('home')">Retour</button>
+        </div>
+        <div class="notice">
+          Le CSV est pratique pour Excel. La sauvegarde JSON conserve aussi les photos et l'historique.
+        </div>
+        <div class="btnrow">
+          <button onclick="exportCSV()">Exporter inventaire CSV</button>
+          <button onclick="exportShoppingCSV()" class="warn">Exporter à recommander CSV</button>
+          <button onclick="exportJSON()" class="secondary">Sauvegarde complète JSON</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 style="margin-top:0">Importer</h2>
+        <div class="field">
+          <label>Importer CSV ou sauvegarde JSON</label>
+          <input id="importFile" type="file" accept=".csv,.json,text/csv,application/json" onchange="importFile(event)" />
+        </div>
+        <p class="mini">
+          Colonnes CSV acceptées : code-barres, référence, désignation, type, marque, machine, emplacement, quantité, stock minimum, fournisseur, prix, notes.
+        </p>
+      </div>
+
+      <div class="card danger-zone">
+        <h2 style="margin-top:0">Zone sensible</h2>
+        <p class="muted">À utiliser seulement si tu veux repartir de zéro sur ce téléphone.</p>
+        <button class="danger" onclick="resetAll()">Effacer tout l'inventaire</button>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <button id="navHome" onclick="go('home')">🏠<span>Accueil</span></button>
+    <button id="navScan" onclick="startScan('lookup')">📷<span>Scan</span></button>
+    <button id="navInventory" onclick="go('inventory')">📦<span>Stock</span></button>
+    <button id="navHistory" onclick="go('history')">🕘<span>Historique</span></button>
+  </nav>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script>
+    const STORAGE_KEY = "stock_fourgon_sav_v1";
+    let db = { parts: [], moves: [], settings: { createdAt: new Date().toISOString() } };
+    let currentView = "home";
+    let previousView = "home";
+    let currentAction = "lookup";
+    let currentPartId = null;
+    let currentMoveType = null;
+    let videoStream = null;
+    let scanLoopActive = false;
+    let scannedRecently = false;
+    let tempPhotoData = "";
+    let ocrImageData = "";
+
+    const $ = (id) => document.getElementById(id);
+
+    function uid(){
+      return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+    }
+
+    function nowISO(){
+      return new Date().toISOString();
+    }
+
+    function fmtDate(iso){
+      if(!iso) return "";
+      const d = new Date(iso);
+      return d.toLocaleString("fr-FR", { dateStyle:"short", timeStyle:"short" });
+    }
+
+    function normalize(s){
+      return (s || "").toString().trim();
+    }
+
+    function lower(s){
+      return normalize(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+    }
+
+    function toast(msg){
+      const t = $("toast");
+      t.textContent = msg;
+      t.classList.add("show");
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(()=>t.classList.remove("show"), 2300);
+    }
+
+    function load(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(raw){
+          const parsed = JSON.parse(raw);
+          db = {
+            parts: Array.isArray(parsed.parts) ? parsed.parts : [],
+            moves: Array.isArray(parsed.moves) ? parsed.moves : [],
+            settings: parsed.settings || {}
+          };
+        }
+      }catch(e){
+        console.error(e);
+        toast("Erreur lecture sauvegarde locale");
+      }
+    }
+
+    function save(){
+      try{
+        db.settings.lastSave = nowISO();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+        renderStats();
+      }catch(e){
+        console.error(e);
+        alert("Sauvegarde impossible. Il y a peut-être trop de photos stockées. Essaie d'exporter puis de supprimer quelques photos.");
+      }
+    }
+
+    function go(view){
+      if(currentView === "scan" && view !== "scan") stopScanner();
+      previousView = currentView;
+      currentView = view;
+      document.querySelectorAll("main > section").forEach(s=>s.classList.add("hidden"));
+      $("view-" + view).classList.remove("hidden");
+      setNavActive(view);
+      $("headerSub").textContent = ({
+        home:"Inventaire pièces détachées",
+        scan:"Scanner code-barres",
+        ocr:"Lecture d'étiquette",
+        inventory:"Liste inventaire",
+        low:"Pièces à recommander",
+        detail:"Fiche pièce",
+        form:"Ajouter / modifier",
+        move:"Entrée / sortie",
+        history:"Historique des mouvements",
+        tools:"Import / Export"
+      })[view] || "Stock Fourgon SAV";
+      if(view === "home") { renderHome(); }
+      if(view === "inventory") { renderInventory(); }
+      if(view === "low") { renderLow(); }
+      if(view === "history") { renderHistory(); }
+      window.scrollTo({top:0, behavior:"smooth"});
+    }
+
+    function setNavActive(view){
+      $("navHome").classList.toggle("active", view === "home");
+      $("navScan").classList.toggle("active", view === "scan" || view === "ocr");
+      $("navInventory").classList.toggle("active", view === "inventory" || view === "detail" || view === "form" || view === "low");
+      $("navHistory").classList.toggle("active", view === "history");
+    }
+
+    function renderStats(){
+      const qtyTotal = db.parts.reduce((sum,p)=>sum + Number(p.qty || 0), 0);
+      const low = db.parts.filter(isLow).length;
+      $("kpiParts").textContent = db.parts.length;
+      $("kpiQty").textContent = qtyTotal;
+      $("kpiLow").textContent = low;
+      const last = db.settings.lastSave ? "Sauvé " + fmtDate(db.settings.lastSave) : "Sauvegarde locale";
+      $("lastSavePill").textContent = last;
+    }
+
+    function renderHome(){
+      renderStats();
+      const recent = [...db.moves].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+      const box = $("recentMoves");
+      if(!recent.length){
+        box.innerHTML = `<div class="empty">Aucun mouvement pour l'instant.</div>`;
+        return;
+      }
+      box.innerHTML = recent.map(moveCard).join("");
+    }
+
+    function getPart(id){
+      return db.parts.find(p=>p.id === id);
+    }
+
+    function isLow(p){
+      return Number(p.minQty || 0) > 0 && Number(p.qty || 0) <= Number(p.minQty || 0);
+    }
+
+    function stockPill(p){
+      const q = Number(p.qty || 0);
+      if(q <= 0) return `<span class="pill danger">Stock 0</span>`;
+      if(isLow(p)) return `<span class="pill warn">À recommander</span>`;
+      return `<span class="pill ok">Stock OK</span>`;
+    }
+
+    function partCard(p){
+      const photo = p.photoData ? `<img class="thumb" src="${p.photoData}" alt="">` : `<div class="thumb" style="display:flex;align-items:center;justify-content:center;color:#64748b;font-size:26px">🧩</div>`;
+      const qClass = Number(p.qty || 0) <= 0 ? "zero" : (isLow(p) ? "low" : "");
+      return `
+        <div class="item">
+          <div class="item-head">
+            <div style="min-width:0">
+              <div class="item-title">${escapeHtml(p.designation || "Pièce sans nom")}</div>
+              <div class="item-meta">
+                Réf : ${escapeHtml(p.reference || "-")} · Code : ${escapeHtml(p.barcode || "-")}<br>
+                ${escapeHtml([p.typePiece, p.brand, p.machine].filter(Boolean).join(" · ") || "Type / marque non renseigné")}<br>
+                Emplacement : ${escapeHtml(p.location || "-")}
+              </div>
+            </div>
+            ${photo}
+          </div>
+          <div class="btnrow" style="justify-content:space-between">
+            <div>
+              <span class="qty ${qClass}">${Number(p.qty || 0)}</span>
+              <span class="muted"> en stock</span>
+              ${stockPill(p)}
+            </div>
+          </div>
+          <div class="btnrow">
+            <button onclick="showDetail('${p.id}')">Ouvrir</button>
+            <button class="ok" onclick="openMove('${p.id}','entree')">+ Entrée</button>
+            <button class="warn" onclick="openMove('${p.id}','sortie')">- Sortie</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderInventory(){
+      const q = lower($("searchInput").value);
+      let list = [...db.parts].sort((a,b)=>lower(a.designation).localeCompare(lower(b.designation)));
+      if(q){
+        list = list.filter(p => lower([
+          p.barcode, p.reference, p.designation, p.typePiece, p.brand, p.machine,
+          p.location, p.supplier, p.notes
+        ].join(" ")).includes(q));
+      }
+      $("inventoryList").innerHTML = list.length ? list.map(partCard).join("") : `<div class="empty">Aucune pièce trouvée.</div>`;
+    }
+
+    function renderLow(){
+      const list = db.parts.filter(isLow).sort((a,b)=>Number(a.qty||0)-Number(b.qty||0));
+      $("lowList").innerHTML = list.length ? list.map(partCard).join("") : `<div class="empty">Nickel : aucune pièce sous le stock minimum.</div>`;
+    }
+
+    function moveCard(m){
+      const p = getPart(m.partId) || {};
+      const sign = m.type === "entree" ? "+" : "-";
+      const cls = m.type === "entree" ? "ok" : "warn";
+      return `
+        <div class="item">
+          <div class="item-head">
+            <div>
+              <div class="item-title">${m.type === "entree" ? "Entrée" : "Sortie"} ${sign}${Number(m.qty || 0)} · ${escapeHtml(p.designation || m.designationSnapshot || "Pièce supprimée")}</div>
+              <div class="item-meta">
+                ${fmtDate(m.date)}<br>
+                Stock : ${Number(m.previousQty ?? 0)} → ${Number(m.newQty ?? 0)}<br>
+                ${escapeHtml(m.note || "")}
+              </div>
+            </div>
+            <span class="pill ${cls}">${m.type === "entree" ? "Entrée" : "Sortie"}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderHistory(){
+      const list = [...db.moves].sort((a,b)=>new Date(b.date)-new Date(a.date));
+      $("historyList").innerHTML = list.length ? list.map(moveCard).join("") : `<div class="empty">Aucun mouvement enregistré.</div>`;
+    }
+
+    function showDetail(id){
+      const p = getPart(id);
+      if(!p){ toast("Pièce introuvable"); go("inventory"); return; }
+      currentPartId = id;
+      const photo = p.photoData ? `<img class="detail-photo" src="${p.photoData}" alt="Photo pièce">` : `<div class="empty">Pas encore de photo pour cette pièce.</div>`;
+      const qClass = Number(p.qty || 0) <= 0 ? "zero" : (isLow(p) ? "low" : "");
+      const moves = db.moves.filter(m=>m.partId === id).sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,8);
+      $("detailContent").innerHTML = `
+        ${photo}
+        <div style="margin-top:14px">
+          <h2 style="margin:0 0 6px">${escapeHtml(p.designation || "Pièce sans nom")}</h2>
+          <div class="btnrow">
+            ${stockPill(p)}
+            <span class="pill">Mini : ${Number(p.minQty || 0)}</span>
+            <span class="pill">MAJ : ${fmtDate(p.updatedAt || p.createdAt)}</span>
+          </div>
+        </div>
+
+        <div class="card" style="box-shadow:none;margin-top:14px;background:#0b1220">
+          <div class="qty ${qClass}">${Number(p.qty || 0)} <span class="muted" style="font-size:14px;font-weight:700">en stock</span></div>
+          <table>
+            <tr><th>Code-barres</th><td>${escapeHtml(p.barcode || "-")}</td></tr>
+            <tr><th>Référence</th><td>${escapeHtml(p.reference || "-")}</td></tr>
+            <tr><th>Type</th><td>${escapeHtml(p.typePiece || "-")}</td></tr>
+            <tr><th>Marque</th><td>${escapeHtml(p.brand || "-")}</td></tr>
+            <tr><th>Machine</th><td>${escapeHtml(p.machine || "-")}</td></tr>
+            <tr><th>Emplacement</th><td>${escapeHtml(p.location || "-")}</td></tr>
+            <tr><th>Fournisseur</th><td>${escapeHtml(p.supplier || "-")}</td></tr>
+            <tr><th>Prix</th><td>${escapeHtml(p.price || "-")}</td></tr>
+            <tr><th>Notes</th><td>${escapeHtml(p.notes || "-").replace(/\n/g,"<br>")}</td></tr>
+          </table>
+        </div>
+
+        <div class="btnrow">
+          <button class="ok" onclick="openMove('${p.id}','entree')">➕ Entrée</button>
+          <button class="warn" onclick="openMove('${p.id}','sortie')">➖ Sortie</button>
+          <button onclick="editPart('${p.id}')">Modifier</button>
+          <button class="danger" onclick="deletePart('${p.id}')">Supprimer</button>
+        </div>
+
+        <h3>Derniers mouvements</h3>
+        <div class="list">${moves.length ? moves.map(moveCard).join("") : `<div class="empty">Aucun mouvement pour cette pièce.</div>`}</div>
+      `;
+      go("detail");
+    }
+
+    function newPart(prefill = {}){
+      currentPartId = null;
+      tempPhotoData = "";
+      $("formTitle").textContent = "Ajouter une pièce";
+      clearForm(false);
+      $("partId").value = "";
+      $("fBarcode").value = prefill.barcode || "";
+      $("fReference").value = prefill.reference || "";
+      $("fDesignation").value = prefill.designation || "";
+      $("fType").value = prefill.typePiece || "";
+      $("fBrand").value = prefill.brand || "";
+      $("fMachine").value = prefill.machine || "";
+      $("fLocation").value = prefill.location || "";
+      $("fQty").value = prefill.qty ?? 0;
+      $("fMinQty").value = prefill.minQty ?? 0;
+      $("fSupplier").value = prefill.supplier || "";
+      $("fPrice").value = prefill.price || "";
+      $("fNotes").value = prefill.notes || "";
+      go("form");
+    }
+
+    function editPart(id){
+      const p = getPart(id);
+      if(!p) return;
+      currentPartId = id;
+      tempPhotoData = p.photoData || "";
+      $("formTitle").textContent = "Modifier la pièce";
+      $("partId").value = p.id;
+      $("fBarcode").value = p.barcode || "";
+      $("fReference").value = p.reference || "";
+      $("fDesignation").value = p.designation || "";
+      $("fType").value = p.typePiece || "";
+      $("fBrand").value = p.brand || "";
+      $("fMachine").value = p.machine || "";
+      $("fLocation").value = p.location || "";
+      $("fQty").value = Number(p.qty || 0);
+      $("fMinQty").value = Number(p.minQty || 0);
+      $("fSupplier").value = p.supplier || "";
+      $("fPrice").value = p.price || "";
+      $("fNotes").value = p.notes || "";
+      if(tempPhotoData){
+        $("photoPreview").src = tempPhotoData;
+        $("photoPreview").classList.remove("hidden");
+      }else{
+        $("photoPreview").classList.add("hidden");
+      }
+      go("form");
+    }
+
+    function clearForm(clearId = true){
+      if(clearId) $("partId").value = "";
+      ["fBarcode","fReference","fDesignation","fType","fBrand","fMachine","fLocation","fSupplier","fPrice","fNotes"].forEach(id=>$(id).value = "");
+      $("fQty").value = 0;
+      $("fMinQty").value = 0;
+      $("fPhoto").value = "";
+      tempPhotoData = "";
+      $("photoPreview").src = "";
+      $("photoPreview").classList.add("hidden");
+    }
+
+    async function loadPartPhoto(event){
+      const file = event.target.files && event.target.files[0];
+      if(!file) return;
+      tempPhotoData = await resizeImage(file, 900, 0.74);
+      $("photoPreview").src = tempPhotoData;
+      $("photoPreview").classList.remove("hidden");
+    }
+
+    function savePart(ev){
+      ev.preventDefault();
+      const id = $("partId").value || uid();
+      const existing = getPart(id);
+      const oldQty = existing ? Number(existing.qty || 0) : 0;
+      const qty = Math.max(0, Number($("fQty").value || 0));
+      const p = {
+        id,
+        barcode: normalize($("fBarcode").value),
+        reference: normalize($("fReference").value),
+        designation: normalize($("fDesignation").value),
+        typePiece: normalize($("fType").value),
+        brand: normalize($("fBrand").value),
+        machine: normalize($("fMachine").value),
+        location: normalize($("fLocation").value),
+        qty,
+        minQty: Math.max(0, Number($("fMinQty").value || 0)),
+        supplier: normalize($("fSupplier").value),
+        price: normalize($("fPrice").value),
+        notes: normalize($("fNotes").value),
+        photoData: tempPhotoData || (existing && existing.photoData) || "",
+        createdAt: existing ? existing.createdAt : nowISO(),
+        updatedAt: nowISO()
+      };
+
+      const duplicate = db.parts.find(x => x.id !== id && p.barcode && x.barcode === p.barcode);
+      if(duplicate && !confirm("Ce code-barres existe déjà sur une autre pièce. Enregistrer quand même ?")) return;
+
+      if(existing){
+        Object.assign(existing, p);
+        if(oldQty !== qty){
+          db.moves.push({
+            id: uid(), partId: id, date: nowISO(), type: qty >= oldQty ? "entree" : "sortie",
+            qty: Math.abs(qty - oldQty), note: "Correction manuelle de stock",
+            previousQty: oldQty, newQty: qty, designationSnapshot: p.designation
+          });
+        }
+        toast("Pièce modifiée");
+      }else{
+        db.parts.push(p);
+        if(qty > 0){
+          db.moves.push({
+            id: uid(), partId: id, date: nowISO(), type: "entree",
+            qty, note: "Création fiche pièce", previousQty: 0, newQty: qty, designationSnapshot: p.designation
+          });
+        }
+        toast("Pièce ajoutée");
+      }
+      save();
+      showDetail(id);
+    }
+
+    function deletePart(id){
+      const p = getPart(id);
+      if(!p) return;
+      if(!confirm("Supprimer cette pièce de l'inventaire ? L'historique restera visible mais la fiche sera supprimée.")) return;
+      db.parts = db.parts.filter(x=>x.id !== id);
+      save();
+      toast("Pièce supprimée");
+      go("inventory");
+    }
+
+    function openMove(id, type){
+      const p = getPart(id);
+      if(!p) return;
+      currentPartId = id;
+      currentMoveType = type;
+      $("moveTitle").textContent = type === "entree" ? "Entrée stock" : "Sortie stock";
+      $("moveQtyLabel").textContent = type === "entree" ? "Quantité entrée" : "Quantité sortie";
+      $("moveQty").value = 1;
+      $("moveNote").value = "";
+      $("moveValidateBtn").className = type === "entree" ? "ok" : "warn";
+      $("moveValidateBtn").textContent = type === "entree" ? "Valider l'entrée" : "Valider la sortie";
+      $("movePartSummary").innerHTML = `
+        <strong>${escapeHtml(p.designation)}</strong><br>
+        Réf : ${escapeHtml(p.reference || "-")} · Emplacement : ${escapeHtml(p.location || "-")}<br>
+        Stock actuel : <strong>${Number(p.qty || 0)}</strong>
+      `;
+      go("move");
+    }
+
+    function validateMove(){
+      const p = getPart(currentPartId);
+      if(!p) return;
+      const qty = Math.max(1, Number($("moveQty").value || 1));
+      const prev = Number(p.qty || 0);
+      let next = prev;
+      if(currentMoveType === "entree"){
+        next = prev + qty;
+      }else{
+        if(qty > prev && !confirm("La sortie est supérieure au stock actuel. Le stock passera à 0. Continuer ?")) return;
+        next = Math.max(0, prev - qty);
+      }
+      p.qty = next;
+      p.updatedAt = nowISO();
+      db.moves.push({
+        id: uid(),
+        partId: p.id,
+        date: nowISO(),
+        type: currentMoveType,
+        qty,
+        note: normalize($("moveNote").value),
+        previousQty: prev,
+        newQty: next,
+        designationSnapshot: p.designation
+      });
+      save();
+      toast(currentMoveType === "entree" ? "Entrée enregistrée" : "Sortie enregistrée");
+      showDetail(p.id);
+    }
+
+    async function startScan(action){
+      currentAction = action || "lookup";
+      $("manualCode").value = "";
+      $("scanTitle").textContent = action === "entree" ? "Scanner pour entrée stock" : action === "sortie" ? "Scanner pour sortie stock" : "Scanner une pièce";
+      go("scan");
+      await startScanner();
+    }
+
+    async function startScanner(){
+      const support = $("scanSupport");
+      support.className = "notice";
+      if(!("BarcodeDetector" in window)){
+        support.className = "notice warn";
+        support.innerHTML = "Le scan code-barres natif n'est pas disponible sur ce navigateur. Tu peux saisir le code manuellement ou utiliser l'OCR étiquette.";
+        return;
+      }
+      if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+        support.className = "notice warn";
+        support.innerHTML = "Caméra non disponible. Utilise la saisie manuelle ou l'OCR.";
+        return;
+      }
+      try{
+        support.innerHTML = "Autorise la caméra, puis vise le code-barres dans le cadre.";
+        videoStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal:"environment" }, width:{ideal:1280}, height:{ideal:720} },
+          audio: false
+        });
+        const video = $("video");
+        video.srcObject = videoStream;
+        await video.play();
+
+        const formats = await BarcodeDetector.getSupportedFormats();
+        const wanted = ["ean_13","ean_8","code_128","code_39","code_93","upc_a","upc_e","itf","codabar","qr_code"];
+        const detector = new BarcodeDetector({ formats: wanted.filter(f=>formats.includes(f)) });
+        scanLoopActive = true;
+        scannedRecently = false;
+
+        const tick = async () => {
+          if(!scanLoopActive) return;
+          try{
+            const codes = await detector.detect(video);
+            if(codes && codes.length && !scannedRecently){
+              scannedRecently = true;
+              const raw = codes[0].rawValue || "";
+              if(navigator.vibrate) navigator.vibrate(80);
+              handleScannedCode(raw);
+              setTimeout(()=> scannedRecently = false, 1500);
+              return;
+            }
+          }catch(e){ console.warn(e); }
+          requestAnimationFrame(tick);
+        };
+        tick();
+      }catch(e){
+        console.error(e);
+        support.className = "notice danger";
+        support.innerHTML = "Impossible d'ouvrir la caméra. Vérifie l'autorisation caméra et ouvre l'appli depuis une page HTTPS si besoin.";
+      }
+    }
+
+    function stopScanner(){
+      scanLoopActive = false;
+      if(videoStream){
+        videoStream.getTracks().forEach(t=>t.stop());
+        videoStream = null;
+      }
+      $("video").srcObject = null;
+    }
+
+    function manualScan(){
+      const code = normalize($("manualCode").value);
+      if(!code){ toast("Saisis un code ou une référence"); return; }
+      handleScannedCode(code);
+    }
+
+    function findByCode(code){
+      const c = lower(code);
+      return db.parts.find(p => lower(p.barcode) === c || lower(p.reference) === c);
+    }
+
+    function handleScannedCode(code){
+      code = normalize(code);
+      if(!code) return;
+      stopScanner();
+      const p = findByCode(code);
+      if(p){
+        toast("Pièce trouvée");
+        if(currentAction === "entree" || currentAction === "sortie"){
+          openMove(p.id, currentAction);
+        }else{
+          showDetail(p.id);
+        }
+      }else{
+        toast("Pièce inconnue : création fiche");
+        newPart({ barcode: code, reference: code, notes: "Créée depuis scan code-barres." });
+      }
+    }
+
+    function previewOcrImage(event){
+      const file = event.target.files && event.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        ocrImageData = reader.result;
+        $("ocrPreview").src = ocrImageData;
+        $("ocrPreview").classList.remove("hidden");
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function runOCR(){
+      if(!ocrImageData){
+        toast("Ajoute une photo d'étiquette");
+        return;
+      }
+      if(!window.Tesseract){
+        alert("Le module OCR n'est pas chargé. Il faut une connexion internet au premier lancement pour charger Tesseract.js.");
+        return;
+      }
+      $("ocrProgressBox").classList.remove("hidden");
+      $("ocrProgress").style.width = "0%";
+      $("ocrStatus").textContent = "Analyse en cours...";
+      try{
+        const result = await Tesseract.recognize(ocrImageData, "fra+eng", {
+          logger: m => {
+            if(m.status){
+              $("ocrStatus").textContent = m.status + (m.progress ? " " + Math.round(m.progress*100) + "%" : "");
+            }
+            if(m.progress){
+              $("ocrProgress").style.width = Math.round(m.progress*100) + "%";
+            }
+          }
+        });
+        const text = (result && result.data && result.data.text) ? result.data.text.trim() : "";
+        $("ocrText").value = text;
+        $("ocrProgress").style.width = "100%";
+        $("ocrStatus").textContent = "Lecture terminée. Vérifie le texte puis crée la fiche.";
+        toast("Étiquette lue");
+      }catch(e){
+        console.error(e);
+        $("ocrStatus").textContent = "Erreur OCR";
+        alert("La lecture OCR a échoué. Tu peux quand même saisir les infos manuellement.");
+      }
+    }
+
+    function newPartFromOCR(){
+      const text = normalize($("ocrText").value);
+      const guess = guessFromText(text);
+      newPart({
+        reference: guess.reference,
+        designation: guess.designation,
+        brand: guess.brand,
+        notes: text ? "Texte étiquette OCR :\n" + text : ""
+      });
+    }
+
+    function guessFromText(text){
+      const lines = text.split(/\n+/).map(x=>x.trim()).filter(Boolean);
+      const joined = lines.join(" ");
+      let ref = "";
+      const refMatch = joined.match(/(?:ref|réf|reference|référence|art|article|code)\s*[:\-]?\s*([A-Z0-9][A-Z0-9\-\/\.]{3,})/i);
+      if(refMatch) ref = refMatch[1];
+      if(!ref){
+        const any = joined.match(/\b[A-Z0-9]{5,}[-\/]?[A-Z0-9]*\b/i);
+        if(any) ref = any[0];
+      }
+      const knownBrands = ["CORCHI","CORGHI","WERTHER","RAVAGLIOLI","HPA","HUNTER","MONDOLFO","CEMB","ROTARY","OMCN","BEISSBARTH","BUTLER","SICE"];
+      const upper = joined.toUpperCase();
+      const brand = knownBrands.find(b=>upper.includes(b)) || "";
+      let designation = lines.find(l => !ref || !l.includes(ref)) || "";
+      designation = designation.replace(/(?:ref|réf|reference|référence|art|article|code)\s*[:\-]?\s*/ig,"").trim();
+      if(designation.length > 60) designation = designation.slice(0,60);
+      return { reference: ref, designation, brand };
+    }
+
+    function exportCSV(){
+      const rows = [[
+        "code_barres","reference","designation","type_piece","marque","machine","emplacement",
+        "quantite","stock_minimum","fournisseur","prix","notes","date_creation","date_modification"
+      ]];
+      db.parts.forEach(p=>rows.push([
+        p.barcode,p.reference,p.designation,p.typePiece,p.brand,p.machine,p.location,
+        p.qty,p.minQty,p.supplier,p.price,p.notes,p.createdAt,p.updatedAt
+      ]));
+      downloadText("inventaire_fourgon_sav.csv", toCSV(rows), "text/csv;charset=utf-8");
+    }
+
+    function exportShoppingCSV(){
+      const rows = [["reference","designation","type_piece","marque","machine","emplacement","quantite","stock_minimum","quantite_a_prevoir"]];
+      db.parts.filter(isLow).forEach(p=>{
+        const need = Math.max(1, Number(p.minQty || 0) - Number(p.qty || 0));
+        rows.push([p.reference,p.designation,p.typePiece,p.brand,p.machine,p.location,p.qty,p.minQty,need]);
+      });
+      downloadText("pieces_a_recommander.csv", toCSV(rows), "text/csv;charset=utf-8");
+    }
+
+    function exportJSON(){
+      downloadText("sauvegarde_stock_fourgon_sav.json", JSON.stringify(db,null,2), "application/json;charset=utf-8");
+    }
+
+    function toCSV(rows){
+      return "\uFEFF" + rows.map(row => row.map(cell => {
+        cell = (cell ?? "").toString().replace(/\r?\n/g," ");
+        return `"${cell.replace(/"/g,'""')}"`;
+      }).join(";")).join("\n");
+    }
+
+    function downloadText(filename, content, mime){
+      const blob = new Blob([content], {type:mime});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 1000);
+      toast("Export lancé");
+    }
+
+    async function importFile(event){
+      const file = event.target.files && event.target.files[0];
+      if(!file) return;
+      const text = await file.text();
+      if(file.name.toLowerCase().endsWith(".json")){
+        try{
+          const imported = JSON.parse(text);
+          if(!Array.isArray(imported.parts)) throw new Error("Format JSON invalide");
+          if(!confirm("Importer cette sauvegarde complète ? Les données actuelles seront remplacées.")) return;
+          db = {
+            parts: imported.parts || [],
+            moves: imported.moves || [],
+            settings: imported.settings || {}
+          };
+          save();
+          toast("Sauvegarde importée");
+          go("inventory");
+        }catch(e){
+          alert("Import JSON impossible : " + e.message);
+        }
+      }else{
+        importCSV(text);
+      }
+      event.target.value = "";
+    }
+
+    function importCSV(text){
+      const rows = parseCSV(text);
+      if(rows.length < 2){ alert("CSV vide ou invalide"); return; }
+      const header = rows[0].map(h=>lower(h).replace(/[\s\-]/g,"_"));
+      const idx = (names) => {
+        for(const n of names){
+          const i = header.indexOf(n);
+          if(i >= 0) return i;
+        }
+        return -1;
+      };
+      const map = {
+        barcode: idx(["code_barres","barcode","code","ean"]),
+        reference: idx(["reference","référence","ref","réf"]),
+        designation: idx(["designation","désignation","nom","piece","pièce"]),
+        typePiece: idx(["type_piece","type","categorie","catégorie"]),
+        brand: idx(["marque","brand"]),
+        machine: idx(["machine","materiel","matériel"]),
+        location: idx(["emplacement","location","bac","tiroir"]),
+        qty: idx(["quantite","quantité","qty","stock"]),
+        minQty: idx(["stock_minimum","minimum","mini","stock_mini"]),
+        supplier: idx(["fournisseur","supplier"]),
+        price: idx(["prix","price"]),
+        notes: idx(["notes","note","commentaire"])
+      };
+      let added = 0, updated = 0;
+      for(let r=1; r<rows.length; r++){
+        const row = rows[r];
+        const val = (k) => map[k] >= 0 ? normalize(row[map[k]]) : "";
+        const barcode = val("barcode");
+        const reference = val("reference");
+        const designation = val("designation");
+        if(!barcode && !reference && !designation) continue;
+        let p = db.parts.find(x => (barcode && x.barcode === barcode) || (reference && x.reference === reference));
+        const data = {
+          barcode, reference, designation: designation || reference || barcode,
+          typePiece: val("typePiece"), brand: val("brand"), machine: val("machine"), location: val("location"),
+          qty: Number(String(val("qty")).replace(",", ".")) || 0,
+          minQty: Number(String(val("minQty")).replace(",", ".")) || 0,
+          supplier: val("supplier"), price: val("price"), notes: val("notes"),
+          updatedAt: nowISO()
+        };
+        if(p){
+          Object.assign(p, data);
+          updated++;
+        }else{
+          p = { id: uid(), ...data, photoData:"", createdAt: nowISO() };
+          db.parts.push(p);
+          added++;
+        }
+      }
+      save();
+      toast(`Import terminé : ${added} ajoutée(s), ${updated} modifiée(s)`);
+      go("inventory");
+    }
+
+    function parseCSV(text){
+      text = text.replace(/^\uFEFF/,"");
+      const sep = (text.split("\n")[0].match(/;/g)||[]).length >= (text.split("\n")[0].match(/,/g)||[]).length ? ";" : ",";
+      const rows = [];
+      let row = [], cell = "", inQuotes = false;
+      for(let i=0; i<text.length; i++){
+        const ch = text[i];
+        const next = text[i+1];
+        if(ch === '"' && inQuotes && next === '"'){ cell += '"'; i++; continue; }
+        if(ch === '"'){ inQuotes = !inQuotes; continue; }
+        if(ch === sep && !inQuotes){ row.push(cell); cell = ""; continue; }
+        if((ch === "\n" || ch === "\r") && !inQuotes){
+          if(ch === "\r" && next === "\n") i++;
+          row.push(cell); rows.push(row); row = []; cell = ""; continue;
+        }
+        cell += ch;
+      }
+      if(cell || row.length){ row.push(cell); rows.push(row); }
+      return rows.filter(r=>r.some(c=>normalize(c)));
+    }
+
+    function resetAll(){
+      if(!confirm("Effacer TOUT l'inventaire et l'historique de ce téléphone ?")) return;
+      if(!confirm("Dernière confirmation : cette action est irréversible sans sauvegarde JSON.")) return;
+      db = { parts: [], moves: [], settings: { createdAt: nowISO() } };
+      save();
+      toast("Inventaire effacé");
+      go("home");
+    }
+
+    function escapeHtml(s){
+      return (s ?? "").toString()
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#039;");
+    }
+
+    function resizeImage(file, maxSize = 900, quality = .75){
+      return new Promise((resolve, reject)=>{
+        const img = new Image();
+        const reader = new FileReader();
+        reader.onload = () => { img.src = reader.result; };
+        reader.onerror = reject;
+        img.onload = () => {
+          let {width, height} = img;
+          const ratio = Math.min(1, maxSize / Math.max(width, height));
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/jpeg", quality));
+        };
+        img.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    window.addEventListener("beforeunload", stopScanner);
+
+    load();
+    renderHome();
+    setNavActive("home");
+  </script>
+</body>
+</html>
