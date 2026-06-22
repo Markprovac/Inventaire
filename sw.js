@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stock-auto-v11';
+const CACHE_NAME = 'stock-auto-v12';
 const urlsToCache = [
   './',
   './index.html',
