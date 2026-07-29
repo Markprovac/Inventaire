@@ -490,7 +490,7 @@
         </div>
         <div id="cloudIdentitySummary" class="muted">Renseigne ton numéro de dépôt technicien pour activer la sauvegarde en ligne.</div>
         <div class="cloud-status-row">
-          <button onclick="go('cloud')">Configurer / synchroniser</button>
+          <button class="ok" onclick="manualCloudSync()">↻ Synchroniser maintenant</button>
           <button class="secondary" onclick="go('colleagueSearch')">🔎 Rechercher chez les collègues</button>
         </div>
       </div>
@@ -2216,6 +2216,23 @@
       if(!cloudConfigured() || !navigator.onLine) return;
       clearTimeout(cloudSyncTimer);
       cloudSyncTimer = setTimeout(()=>pushCloudSnapshot(true), 1400);
+    }
+
+    async function manualCloudSync(){
+      if(!cloudConfigured()){
+        toast("Connecte d'abord ton compte cloud");
+        go("cloud");
+        return false;
+      }
+      if(!navigator.onLine){
+        alert("Pas de connexion Internet. Le stock reste sauvegardé sur ce téléphone et sera synchronisé automatiquement dès que le réseau reviendra.");
+        return false;
+      }
+      if(cloudSyncRunning){
+        toast("Synchronisation déjà en cours");
+        return false;
+      }
+      return pushCloudSnapshot(false);
     }
 
     async function pushCloudSnapshot(silent = false){
