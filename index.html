@@ -775,9 +775,56 @@
         </div>
         <div class="btnrow">
           <button class="ok" onclick="cloudConnect()">Créer le compte / se connecter</button>
+          <button class="secondary" onclick="forgotCloudPin()">Code PIN oublié ?</button>
           <button class="ghost" onclick="cloudLogout()">Déconnecter ce téléphone</button>
         </div>
         <div id="cloudAccountNotice" class="notice warn" style="margin-top:12px">La sauvegarde en ligne n'est pas encore configurée sur ce téléphone.</div>
+      </div>
+
+      <div class="card" id="changePinCard">
+        <h2 style="margin-top:0">Modifier mon code PIN</h2>
+        <p class="muted">Le stock et l'historique ne sont pas modifiés. Après une réinitialisation par l'administrateur, saisis ici le PIN temporaire puis choisis ton nouveau PIN personnel.</p>
+        <div class="form-grid">
+          <div class="field">
+            <label>PIN actuel ou temporaire</label>
+            <input id="currentCloudPin" type="password" inputmode="numeric" autocomplete="current-password" minlength="4" maxlength="12" placeholder="4 à 12 chiffres" />
+          </div>
+          <div class="field">
+            <label>Nouveau PIN</label>
+            <input id="newCloudPin" type="password" inputmode="numeric" autocomplete="new-password" minlength="4" maxlength="12" placeholder="4 à 12 chiffres" />
+          </div>
+          <div class="field">
+            <label>Confirmer le nouveau PIN</label>
+            <input id="confirmCloudPin" type="password" inputmode="numeric" autocomplete="new-password" minlength="4" maxlength="12" placeholder="Répète le nouveau PIN" />
+          </div>
+        </div>
+        <button class="ok" onclick="changeCloudPin()">Enregistrer mon nouveau PIN</button>
+        <div id="changePinNotice" class="mini" style="margin-top:10px"></div>
+      </div>
+
+      <div class="card">
+        <details id="adminPinDetails">
+          <summary style="cursor:pointer;font-weight:900;font-size:18px">🔐 Administration — réinitialiser un PIN oublié</summary>
+          <div class="notice warn" style="margin-top:12px">
+            Réservé à l'administrateur. Le mot de passe administrateur n'est jamais enregistré dans le téléphone. Le nouveau PIN est temporaire et devra être remplacé par le technicien.
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Numéro de dépôt du technicien</label>
+              <input id="adminDepotNumber" autocomplete="off" placeholder="Ex : 1254" />
+            </div>
+            <div class="field">
+              <label>Nouveau PIN temporaire</label>
+              <input id="adminTemporaryPin" type="password" inputmode="numeric" autocomplete="new-password" minlength="4" maxlength="12" placeholder="4 à 12 chiffres" />
+            </div>
+            <div class="field">
+              <label>Mot de passe administrateur</label>
+              <input id="adminSecretInput" type="password" autocomplete="off" placeholder="Secret ADMIN_SECRET" />
+            </div>
+          </div>
+          <button class="danger" onclick="adminResetCloudPin()">Créer le PIN temporaire</button>
+          <div id="adminResetNotice" class="mini" style="margin-top:10px"></div>
+        </details>
       </div>
 
       <div class="card">
@@ -2062,7 +2109,8 @@
       if(db.settings.technicianDepot){
         const identity = [db.settings.technicianName, "dépôt " + db.settings.technicianDepot].filter(Boolean).join(" · ");
         const last = db.settings.lastCloudSync ? " · dernière synchro " + fmtDate(db.settings.lastCloudSync) : "";
-        summary.textContent = identity + last + (cloudStatusMessage ? " · " + cloudStatusMessage : "");
+        const pinState = db.settings.mustChangePin ? " · PIN temporaire à modifier" : "";
+        summary.textContent = identity + last + pinState + (cloudStatusMessage ? " · " + cloudStatusMessage : "");
       }else{
         summary.textContent = "Renseigne ton numéro de dépôt technicien pour activer la sauvegarde en ligne.";
       }
@@ -2072,10 +2120,14 @@
       $("cloudTechnicianName").value = db.settings.technicianName || "";
       $("cloudDepotNumber").value = db.settings.technicianDepot || "";
       $("cloudPin").value = "";
+      if($("changePinNotice")) $("changePinNotice").textContent = db.settings.mustChangePin ? "Tu utilises un PIN temporaire : choisis maintenant ton PIN personnel." : "";
 
       const connected = cloudConfigured();
       const notice = $("cloudAccountNotice");
-      if(connected){
+      if(connected && db.settings.mustChangePin){
+        notice.className = "notice warn";
+        notice.textContent = "Connexion effectuée avec un PIN temporaire. Modifie-le avant de synchroniser le stock.";
+      }else if(connected){
         notice.className = "notice";
         notice.textContent = "Téléphone connecté au stock du dépôt " + db.settings.technicianDepot + ".";
       }else{
@@ -2116,7 +2168,7 @@
         let data = {};
         try{ data = raw ? JSON.parse(raw) : {}; }catch{ data = {message:raw}; }
         if(!response.ok){
-          if(response.status === 401){
+          if(response.status === 401 && requireAuth){
             cloudToken = "";
             localStorage.removeItem(CLOUD_TOKEN_KEY);
           }
@@ -2166,10 +2218,18 @@
         localStorage.setItem(CLOUD_TOKEN_KEY, cloudToken);
         db.settings.technicianName = data.technician?.name || name;
         db.settings.technicianDepot = data.technician?.depotNumber || depotNumber;
+        db.settings.mustChangePin = Boolean(data.mustChangePin);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
         $("cloudPin").value = "";
-        setCloudStatus(data.created ? "Compte technicien créé" : "Connexion réussie", "");
+        setCloudStatus(data.created ? "Compte technicien créé" : (data.mustChangePin ? "PIN temporaire accepté : modification obligatoire" : "Connexion réussie"), data.mustChangePin ? "warn" : "");
         toast(data.created ? "Compte cloud créé" : "Compte cloud connecté");
+
+        if(data.mustChangePin){
+          alert("Tu es connecté avec un PIN temporaire. Modifie-le maintenant dans la rubrique « Modifier mon code PIN ». Le stock ne sera pas synchronisé avant ce changement.");
+          renderCloudPage();
+          setTimeout(()=>$("changePinCard")?.scrollIntoView({behavior:"smooth", block:"start"}), 100);
+          return;
+        }
 
         if(!data.hasSnapshot && db.parts.length){
           await pushCloudSnapshot(true);
@@ -2185,12 +2245,86 @@
       }
     }
 
+    function forgotCloudPin(){
+      alert(
+        "Le code PIN ne peut pas être affiché ni récupéré.\n\n" +
+        "Communique ton numéro de dépôt à l'administrateur. Il créera un PIN temporaire sans supprimer ton stock. Ensuite, connecte-toi avec ce PIN temporaire et remplace-le dans « Modifier mon code PIN »."
+      );
+    }
+
+    async function changeCloudPin(){
+      if(!cloudConfigured()){
+        alert("Connecte d'abord ton compte technicien.");
+        return;
+      }
+      const currentPin = normalize($("currentCloudPin").value);
+      const newPin = normalize($("newCloudPin").value);
+      const confirmPin = normalize($("confirmCloudPin").value);
+      if(!/^\d{4,12}$/.test(currentPin) || !/^\d{4,12}$/.test(newPin)){
+        alert("Les PIN doivent contenir entre 4 et 12 chiffres.");
+        return;
+      }
+      if(newPin !== confirmPin){ alert("La confirmation du nouveau PIN ne correspond pas."); return; }
+      if(currentPin === newPin){ alert("Choisis un nouveau PIN différent."); return; }
+
+      $("changePinNotice").textContent = "Modification en cours…";
+      try{
+        const data = await cloudFetch("/api/account/change-pin", {
+          method:"POST",
+          body:JSON.stringify({currentPin, newPin})
+        });
+        cloudToken = data.token;
+        localStorage.setItem(CLOUD_TOKEN_KEY, cloudToken);
+        db.settings.mustChangePin = false;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+        ["currentCloudPin","newCloudPin","confirmCloudPin"].forEach(id=>$(id).value = "");
+        $("changePinNotice").textContent = "PIN modifié avec succès.";
+        setCloudStatus("PIN personnel modifié", "");
+        toast("Nouveau PIN enregistré");
+        renderCloudPage();
+        await autoCloudSyncOnStart();
+      }catch(e){
+        $("changePinNotice").textContent = "Échec : " + e.message;
+        alert("Modification du PIN impossible : " + e.message);
+      }
+    }
+
+    async function adminResetCloudPin(){
+      const depotNumber = normalize($("adminDepotNumber").value).toUpperCase();
+      const newPin = normalize($("adminTemporaryPin").value);
+      const adminSecret = normalize($("adminSecretInput").value);
+      if(!depotNumber){ alert("Renseigne le numéro de dépôt du technicien."); return; }
+      if(!/^\d{4,12}$/.test(newPin)){ alert("Le PIN temporaire doit contenir entre 4 et 12 chiffres."); return; }
+      if(adminSecret.length < 32){ alert("Le mot de passe administrateur doit correspondre au secret ADMIN_SECRET configuré dans Cloudflare."); return; }
+      if(!confirm("Réinitialiser le PIN du dépôt " + depotNumber + " ?\n\nLe stock ne sera pas supprimé. Toutes les anciennes connexions seront révoquées.")) return;
+
+      $("adminResetNotice").textContent = "Réinitialisation en cours…";
+      try{
+        const data = await cloudFetch("/api/admin/reset-pin", {
+          method:"POST",
+          body:JSON.stringify({depotNumber, newPin, adminSecret})
+        }, false);
+        $("adminSecretInput").value = "";
+        $("adminTemporaryPin").value = "";
+        $("adminResetNotice").textContent = data.message || "PIN temporaire créé.";
+        alert(
+          "PIN temporaire créé pour " + (data.technicianName || "le technicien") +
+          " — dépôt " + depotNumber + ".\n\nCommunique-lui le PIN temporaire. À sa prochaine connexion, il devra choisir un nouveau PIN personnel."
+        );
+      }catch(e){
+        $("adminSecretInput").value = "";
+        $("adminResetNotice").textContent = "Échec : " + e.message;
+        alert("Réinitialisation impossible : " + e.message);
+      }
+    }
+
     function cloudLogout(){
       if(!cloudToken){ toast("Ce téléphone n'est pas connecté"); return; }
       if(!confirm("Déconnecter ce téléphone de Cloudflare ? Le stock local restera sur le téléphone.")) return;
       cloudToken = "";
       localStorage.removeItem(CLOUD_TOKEN_KEY);
       db.settings.lastCloudSync = "";
+      db.settings.mustChangePin = false;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
       setCloudStatus("Téléphone déconnecté du cloud", "warn");
       renderCloudPage();
@@ -2213,7 +2347,7 @@
     }
 
     function queueCloudSync(){
-      if(!cloudConfigured() || !navigator.onLine) return;
+      if(!cloudConfigured() || db.settings.mustChangePin || !navigator.onLine) return;
       clearTimeout(cloudSyncTimer);
       cloudSyncTimer = setTimeout(()=>pushCloudSnapshot(true), 1400);
     }
@@ -2221,6 +2355,11 @@
     async function manualCloudSync(){
       if(!cloudConfigured()){
         toast("Connecte d'abord ton compte cloud");
+        go("cloud");
+        return false;
+      }
+      if(db.settings.mustChangePin){
+        alert("Modifie d'abord le PIN temporaire dans Mon compte cloud.");
         go("cloud");
         return false;
       }
@@ -2238,6 +2377,10 @@
     async function pushCloudSnapshot(silent = false){
       if(!cloudConfigured()){
         if(!silent) alert("Connecte d'abord ton compte technicien Cloudflare.");
+        return false;
+      }
+      if(db.settings.mustChangePin){
+        if(!silent) alert("Modifie d'abord le PIN temporaire dans Mon compte cloud.");
         return false;
       }
       if(cloudSyncRunning) return false;
@@ -2271,6 +2414,10 @@
         alert("Connecte d'abord ton compte technicien Cloudflare.");
         return false;
       }
+      if(db.settings.mustChangePin){
+        alert("Modifie d'abord le PIN temporaire dans Mon compte cloud.");
+        return false;
+      }
       if(confirmReplace && db.parts.length && !confirm("Remplacer le stock de ce téléphone par la sauvegarde Cloudflare ?\n\nLes photos déjà présentes sur les fiches identiques seront conservées localement.")) return false;
 
       cloudSyncRunning = true;
@@ -2286,7 +2433,8 @@
         const safeMoves = Array.isArray(data.snapshot.moves) ? data.snapshot.moves : [];
         const preserved = {
           technicianName: db.settings.technicianName,
-          technicianDepot: db.settings.technicianDepot
+          technicianDepot: db.settings.technicianDepot,
+          mustChangePin: db.settings.mustChangePin
         };
         db = {
           parts:safeParts,
@@ -2316,7 +2464,7 @@
     }
 
     async function autoCloudSyncOnStart(){
-      if(!cloudConfigured() || !navigator.onLine) return;
+      if(!cloudConfigured() || db.settings.mustChangePin || !navigator.onLine) return;
       try{
         const status = await cloudFetch("/api/sync/status");
         const localChanged = Boolean(db.settings.lastSave && (!db.settings.lastCloudSync || new Date(db.settings.lastSave) > new Date(db.settings.lastCloudSync)));
@@ -2346,6 +2494,11 @@
       const resultsBox = $("colleagueSearchResults");
       if(!cloudConfigured()){
         alert("Connecte d'abord ton compte technicien Cloudflare.");
+        go("cloud");
+        return;
+      }
+      if(db.settings.mustChangePin){
+        alert("Modifie d'abord le PIN temporaire dans Mon compte cloud.");
         go("cloud");
         return;
       }
@@ -2392,6 +2545,7 @@
 
     async function loadCloudBackups(){
       if(!cloudConfigured()){ alert("Connecte d'abord ton compte Cloudflare."); return; }
+      if(db.settings.mustChangePin){ alert("Modifie d'abord le PIN temporaire."); return; }
       try{
         const data = await cloudFetch("/api/backups");
         const list = Array.isArray(data.backups) ? data.backups : [];
