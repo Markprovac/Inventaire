@@ -753,7 +753,7 @@
     <section id="view-cloud" class="hidden">
       <div class="card">
         <div class="section-title">
-          <h2>Compte technicien Cloudflare</h2>
+          <h2>Compte technicien</h2>
           <button class="secondary" onclick="go('home')">Retour</button>
         </div>
         <div class="notice">
@@ -769,20 +769,15 @@
             <input id="cloudDepotNumber" autocomplete="username" placeholder="Ex : 1254" />
           </div>
           <div class="field">
-            <label>Code PIN cloud *</label>
+            <label>Code PIN personnel *</label>
             <input id="cloudPin" type="password" inputmode="numeric" autocomplete="current-password" minlength="4" maxlength="12" placeholder="4 à 12 chiffres" />
-          </div>
-          <div class="field">
-            <label>Adresse du Worker Cloudflare *</label>
-            <input id="cloudWorkerUrl" type="url" inputmode="url" placeholder="https://stock-fourgon-api.markrusten-e08.workers.dev" />
           </div>
         </div>
         <div class="btnrow">
           <button class="ok" onclick="cloudConnect()">Créer le compte / se connecter</button>
-          <button class="secondary" onclick="testCloudConnection()">Tester le Worker</button>
           <button class="ghost" onclick="cloudLogout()">Déconnecter ce téléphone</button>
         </div>
-        <div id="cloudAccountNotice" class="notice warn" style="margin-top:12px">Cloudflare n'est pas encore configuré sur ce téléphone.</div>
+        <div id="cloudAccountNotice" class="notice warn" style="margin-top:12px">La sauvegarde en ligne n'est pas encore configurée sur ce téléphone.</div>
       </div>
 
       <div class="card">
@@ -857,7 +852,8 @@
   <script>
     const STORAGE_KEY = "stock_fourgon_sav_v1";
     const CLOUD_TOKEN_KEY = "stock_fourgon_cloud_token_v1";
-    const DEFAULT_CLOUD_WORKER_URL = ""; // Peut être renseigné depuis l'écran Cloudflare.
+    // Adresse fixe de l'API : les techniciens n'ont rien à saisir.
+    const DEFAULT_CLOUD_WORKER_URL = "https://stock-fourgon-api.markrusten-e08.workers.dev";
     let cloudToken = localStorage.getItem(CLOUD_TOKEN_KEY) || "";
     let cloudSyncTimer = null;
     let cloudSyncRunning = false;
@@ -927,9 +923,6 @@
         }
         db.settings = db.settings || {};
         if(!db.settings.createdAt) db.settings.createdAt = nowISO();
-        if(!db.settings.cloudWorkerUrl && DEFAULT_CLOUD_WORKER_URL){
-          db.settings.cloudWorkerUrl = DEFAULT_CLOUD_WORKER_URL;
-        }
       }catch(e){
         console.error(e);
         toast("Erreur lecture sauvegarde locale");
@@ -967,7 +960,7 @@
         move:"Entrée / sortie",
         history:"Historique des mouvements",
         colleagueSearch:"Recherche dans les stocks collègues",
-        cloud:"Compte et sauvegarde Cloudflare",
+        cloud:"Compte et sauvegarde en ligne",
         tools:"Import / Export"
       })[view] || "Stock Fourgon SAV";
       if(view === "home") { renderHome(); }
@@ -2033,7 +2026,7 @@
     }
 
     function cloudBaseUrl(){
-      return normalize(db.settings.cloudWorkerUrl || DEFAULT_CLOUD_WORKER_URL).replace(/\/+$/, "");
+      return DEFAULT_CLOUD_WORKER_URL.replace(/\/+$/, "");
     }
 
     function cloudConfigured(){
@@ -2078,7 +2071,6 @@
     function renderCloudPage(){
       $("cloudTechnicianName").value = db.settings.technicianName || "";
       $("cloudDepotNumber").value = db.settings.technicianDepot || "";
-      $("cloudWorkerUrl").value = db.settings.cloudWorkerUrl || DEFAULT_CLOUD_WORKER_URL || "";
       $("cloudPin").value = "";
 
       const connected = cloudConfigured();
@@ -2088,7 +2080,7 @@
         notice.textContent = "Téléphone connecté au stock du dépôt " + db.settings.technicianDepot + ".";
       }else{
         notice.className = "notice warn";
-        notice.textContent = "Cloudflare n'est pas encore connecté sur ce téléphone. Le stock local continue de fonctionner normalement.";
+        notice.textContent = "La sauvegarde en ligne n'est pas encore connectée sur ce téléphone. Le stock local continue de fonctionner normalement.";
       }
 
       $("cloudSyncDetails").textContent = [
@@ -2101,7 +2093,7 @@
 
     function renderColleagueSearchPage(){
       if(!cloudConfigured()){
-        $("colleagueSearchStatus").textContent = "Connecte d'abord ton numéro de dépôt dans l'écran Cloudflare.";
+        $("colleagueSearchStatus").textContent = "Connecte d'abord ton compte technicien dans l'écran Mon compte cloud.";
       }else{
         $("colleagueSearchStatus").textContent = "Connecté comme " + (db.settings.technicianName || "technicien") + " · dépôt " + db.settings.technicianDepot;
       }
@@ -2109,11 +2101,11 @@
 
     async function cloudFetch(path, options = {}, requireAuth = true){
       const base = cloudBaseUrl();
-      if(!base) throw new Error("Adresse du Worker Cloudflare non renseignée");
+      if(!base) throw new Error("Adresse du service en ligne non configurée dans l'application");
       const headers = new Headers(options.headers || {});
       if(options.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
       if(requireAuth){
-        if(!cloudToken) throw new Error("Compte Cloudflare non connecté");
+        if(!cloudToken) throw new Error("Compte technicien non connecté");
         headers.set("Authorization", "Bearer " + cloudToken);
       }
       const controller = new AbortController();
@@ -2140,8 +2132,6 @@
     }
 
     async function testCloudConnection(){
-      db.settings.cloudWorkerUrl = normalize($("cloudWorkerUrl").value);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
       try{
         const data = await cloudFetch("/api/health", {method:"GET"}, false);
         setCloudStatus(data.message || "Worker Cloudflare accessible", "");
@@ -2156,14 +2146,12 @@
       const name = normalize($("cloudTechnicianName").value);
       const depotNumber = normalize($("cloudDepotNumber").value).toUpperCase();
       const pin = normalize($("cloudPin").value);
-      const workerUrl = normalize($("cloudWorkerUrl").value).replace(/\/+$/, "");
+      const workerUrl = cloudBaseUrl();
 
       if(!name){ alert("Renseigne le nom du technicien."); return; }
       if(!depotNumber){ alert("Renseigne le numéro de dépôt technicien."); return; }
       if(!/^\d{4,12}$/.test(pin)){ alert("Le code PIN doit contenir entre 4 et 12 chiffres."); return; }
-      if(!/^https:\/\//i.test(workerUrl)){ alert("L'adresse du Worker doit commencer par https://"); return; }
-
-      db.settings.cloudWorkerUrl = workerUrl;
+      if(!/^https:\/\//i.test(workerUrl)){ alert("Le service en ligne est mal configuré dans l'application."); return; }
       db.settings.technicianName = name;
       db.settings.technicianDepot = depotNumber;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
@@ -2280,7 +2268,6 @@
         const safeParts = Array.isArray(data.snapshot.parts) ? data.snapshot.parts.map(p=>({...p, photoData:oldPhotos.get(p.id) || ""})) : [];
         const safeMoves = Array.isArray(data.snapshot.moves) ? data.snapshot.moves : [];
         const preserved = {
-          cloudWorkerUrl: db.settings.cloudWorkerUrl,
           technicianName: db.settings.technicianName,
           technicianDepot: db.settings.technicianDepot
         };
@@ -2474,7 +2461,6 @@
           if(!Array.isArray(imported.parts)) throw new Error("Format JSON invalide");
           if(!confirm("Importer cette sauvegarde complète ? Les données actuelles seront remplacées.")) return;
           const cloudSettings = {
-            cloudWorkerUrl: db.settings.cloudWorkerUrl || "",
             technicianName: db.settings.technicianName || "",
             technicianDepot: db.settings.technicianDepot || ""
           };
@@ -2647,7 +2633,6 @@
       if(!confirm("Effacer TOUT l'inventaire et l'historique de ce téléphone ?")) return;
       if(!confirm("Dernière confirmation : cette action est irréversible sans sauvegarde JSON.")) return;
       const preservedCloud = {
-        cloudWorkerUrl: db.settings.cloudWorkerUrl || "",
         technicianName: db.settings.technicianName || "",
         technicianDepot: db.settings.technicianDepot || ""
       };
