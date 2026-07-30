@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#1e3a8a">
+  <title>Administration — Stock Fourgon SAV</title>
+  <style>
+    :root{
+      --bg:#0f172a;--card:#111827;--card2:#1f2937;--text:#f9fafb;--muted:#cbd5e1;
+      --line:#334155;--accent:#38bdf8;--ok:#22c55e;--warn:#f59e0b;--danger:#ef4444;
+      --shadow:0 10px 30px rgba(0,0,0,.30);--radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:linear-gradient(180deg,#0f172a,#111827);color:var(--text);min-height:100vh}
+    header{position:sticky;top:0;z-index:20;background:rgba(15,23,42,.97);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:12px 14px}
+    .topbar{max-width:1050px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:12px}
+    h1{font-size:19px;margin:0}.subtitle{font-size:12px;color:var(--muted);margin-top:3px}
+    main{max-width:1050px;margin:auto;padding:14px 14px 50px}
+    .card{background:rgba(17,24,39,.94);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin-bottom:14px}
+    .danger-zone{border-color:rgba(239,68,68,.55)}
+    .grid{display:grid;grid-template-columns:1fr;gap:14px}
+    @media(min-width:760px){.grid.two{grid-template-columns:1fr 1fr}.form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    .form-grid{display:grid;gap:0 12px}
+    label{display:block;color:var(--muted);font-size:13px;font-weight:800;margin:0 0 6px}
+    .field{margin-bottom:12px}
+    input,select{width:100%;border:1px solid #475569;background:#0b1220;color:var(--text);border-radius:13px;padding:12px;font-size:16px;outline:none}
+    button{border:0;border-radius:13px;padding:11px 13px;background:var(--accent);color:#04121a;font-weight:900;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+    button.secondary{background:#334155;color:var(--text);border:1px solid #475569}
+    button.ok{background:var(--ok);color:#04120a}
+    button.warn{background:var(--warn);color:#1a1000}
+    button.danger{background:var(--danger);color:#fff}
+    button:disabled{opacity:.55;cursor:not-allowed}
+    .btnrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    .notice{border:1px solid rgba(56,189,248,.4);background:rgba(56,189,248,.10);padding:12px;border-radius:15px;line-height:1.45;margin-bottom:12px}
+    .notice.warn{border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.12)}
+    .notice.danger{border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.12)}
+    .muted,.mini{color:var(--muted)}.mini{font-size:12px;line-height:1.4}
+    .pill{display:inline-flex;padding:6px 9px;border-radius:999px;border:1px solid var(--line);font-size:12px;font-weight:900;background:#0b1220;color:var(--muted)}
+    .pill.ok{color:#bbf7d0;border-color:rgba(34,197,94,.45)}
+    .pill.danger{color:#fecaca;border-color:rgba(239,68,68,.5)}
+    .list{display:flex;flex-direction:column;gap:10px}
+    .item{border:1px solid var(--line);background:rgba(31,41,55,.75);border-radius:16px;padding:12px;display:grid;gap:10px}
+    .item-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+    .item-title{font-weight:950;font-size:16px}.item-meta{color:var(--muted);font-size:13px;line-height:1.45;margin-top:4px}
+    .empty{text-align:center;color:var(--muted);padding:24px 8px;border:1px dashed var(--line);border-radius:16px}
+    .section-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.section-title h2{font-size:19px;margin:0}
+    .toast{position:fixed;left:12px;right:12px;bottom:18px;background:#f8fafc;color:#0f172a;border-radius:16px;padding:13px;font-weight:900;box-shadow:var(--shadow);z-index:99;transform:translateY(120px);opacity:0;transition:.25s;text-align:center}
+    .toast.show{transform:translateY(0);opacity:1}
+    code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  </style>
+</head>
+<body>
+<header>
+  <div class="topbar">
+    <div>
+      <h1>🔐 Administration — Stock Fourgon SAV</h1>
+      <div class="subtitle">Gestion des comptes techniciens</div>
+    </div>
+    <span class="pill" id="workerStatus">Non testé</span>
+  </div>
+</header>
+
+<main>
+  <div class="card">
+    <div class="notice warn">
+      Cette page est réservée à l'administrateur. Le secret <code>ADMIN_SECRET</code> reste uniquement dans le champ ci-dessous : il n'est pas enregistré dans le navigateur ni dans GitHub.
+    </div>
+    <div class="field">
+      <label>Mot de passe administrateur</label>
+      <input id="adminSecret" type="password" autocomplete="off" placeholder="Secret ADMIN_SECRET configuré dans Cloudflare">
+    </div>
+    <div class="btnrow">
+      <button class="secondary" onclick="testWorker()">Tester le Worker</button>
+      <button class="ok" onclick="loadAccounts()">Actualiser la liste des comptes</button>
+      <button class="secondary" onclick="clearSecret()">Effacer le secret de l'écran</button>
+    </div>
+    <div id="globalNotice" class="mini" style="margin-top:10px"></div>
+  </div>
+
+  <div class="grid two">
+    <div class="card">
+      <h2 style="margin-top:0">Créer un PIN temporaire</h2>
+      <p class="muted">Le stock reste intact. Toutes les anciennes connexions du technicien sont révoquées et il devra choisir un nouveau PIN personnel.</p>
+      <div class="field">
+        <label>Numéro de dépôt</label>
+        <input id="resetDepot" autocomplete="off" placeholder="Ex : 1254">
+      </div>
+      <div class="field">
+        <label>Nouveau PIN temporaire</label>
+        <input id="temporaryPin" type="password" inputmode="numeric" autocomplete="new-password" minlength="4" maxlength="12" placeholder="4 à 12 chiffres">
+      </div>
+      <button class="warn" onclick="resetPin()">Créer le PIN temporaire</button>
+      <div id="resetNotice" class="mini" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">Restaurer un compte désactivé</h2>
+      <p class="muted">À utiliser dans les 30 jours suivant la demande de suppression. Le technicien se reconnectera avec son PIN habituel.</p>
+      <div class="field">
+        <label>Numéro de dépôt</label>
+        <input id="restoreDepot" autocomplete="off" placeholder="Ex : 1254">
+      </div>
+      <button class="ok" onclick="restoreAccount()">Restaurer le compte</button>
+      <div id="restoreNotice" class="mini" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <div class="card danger-zone">
+    <h2 style="margin-top:0">Suppression définitive immédiate</h2>
+    <div class="notice danger">
+      Cette opération supprime le compte, le stock cloud, l'historique cloud et toutes les sauvegardes. Elle est destinée notamment aux comptes d'essai.
+    </div>
+    <div class="form-grid">
+      <div class="field">
+        <label>Numéro de dépôt</label>
+        <input id="deleteDepot" autocomplete="off" placeholder="Ex : 01">
+      </div>
+      <div class="field">
+        <label>Confirmation</label>
+        <input id="deleteConfirmation" autocomplete="off" placeholder="Écris SUPPRIMER">
+      </div>
+    </div>
+    <button class="danger" onclick="deleteAccount()">Supprimer définitivement le compte</button>
+    <div id="deleteNotice" class="mini" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">
+      <h2>Comptes techniciens</h2>
+      <span class="pill" id="accountCount">0 compte</span>
+    </div>
+    <div class="field">
+      <label>Filtrer la liste</label>
+      <input id="accountFilter" placeholder="Nom ou numéro de dépôt…" oninput="renderAccounts()">
+    </div>
+    <div id="accountList" class="list"><div class="empty">Saisis ton secret puis actualise la liste.</div></div>
+  </div>
+</main>
+
+<div id="toast" class="toast"></div>
+
+<script>
+  const WORKER_URL = "https://stock-fourgon-api.markrusten-e08.workers.dev";
+  let accounts = [];
+
+  const $ = id => document.getElementById(id);
+
+  function normalize(value){
+    return (value ?? "").toString().trim();
+  }
+
+  function searchKey(value){
+    return normalize(value).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  }
+
+  function escapeHtml(value){
+    return (value ?? "").toString()
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+  }
+
+  function fmtDate(value){
+    if(!value) return "—";
+    const date = new Date(value);
+    if(Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString("fr-FR",{dateStyle:"short",timeStyle:"short"});
+  }
+
+  function toast(message){
+    const box = $("toast");
+    box.textContent = message;
+    box.classList.add("show");
+    clearTimeout(window.__toastTimer);
+    window.__toastTimer = setTimeout(()=>box.classList.remove("show"),2400);
+  }
+
+  function adminSecret(){
+    const value = normalize($("adminSecret").value);
+    if(value.length < 32) throw new Error("Saisis le secret ADMIN_SECRET complet.");
+    return value;
+  }
+
+  async function api(path, body = null, method = "POST"){
+    const controller = new AbortController();
+    const timer = setTimeout(()=>controller.abort(),20000);
+    try{
+      const response = await fetch(WORKER_URL + path,{
+        method,
+        headers:body ? {"Content-Type":"application/json"} : {},
+        body:body ? JSON.stringify(body) : undefined,
+        signal:controller.signal
+      });
+      const raw = await response.text();
+      let data = {};
+      try{data = raw ? JSON.parse(raw) : {}}catch{data = {message:raw}}
+      if(!response.ok) throw new Error(data.error || data.message || ("Erreur " + response.status));
+      return data;
+    }catch(error){
+      if(error.name === "AbortError") throw new Error("Le Worker Cloudflare ne répond pas.");
+      throw error;
+    }finally{
+      clearTimeout(timer);
+    }
+  }
+
+  async function testWorker(){
+    try{
+      const data = await api("/api/health",null,"GET");
+      $("workerStatus").className = "pill ok";
+      $("workerStatus").textContent = "Worker opérationnel";
+      $("globalNotice").textContent = data.message || "Connexion réussie.";
+      toast("Worker accessible");
+    }catch(error){
+      $("workerStatus").className = "pill danger";
+      $("workerStatus").textContent = "Worker indisponible";
+      $("globalNotice").textContent = error.message;
+      alert(error.message);
+    }
+  }
+
+  function clearSecret(){
+    $("adminSecret").value = "";
+    toast("Secret effacé de l'écran");
+  }
+
+  async function loadAccounts(){
+    try{
+      $("globalNotice").textContent = "Chargement des comptes…";
+      const data = await api("/api/admin/accounts",{adminSecret:adminSecret()});
+      accounts = Array.isArray(data.accounts) ? data.accounts : [];
+      renderAccounts();
+      $("globalNotice").textContent = accounts.length + " compte(s) chargé(s).";
+      toast("Liste actualisée");
+    }catch(error){
+      $("globalNotice").textContent = "Échec : " + error.message;
+      alert("Impossible de charger les comptes : " + error.message);
+    }
+  }
+
+  function renderAccounts(){
+    const q = searchKey($("accountFilter").value);
+    const filtered = accounts.filter(account => !q || searchKey(account.name + " " + account.depotNumber).includes(q));
+    $("accountCount").textContent = filtered.length + (filtered.length > 1 ? " comptes" : " compte");
+    $("accountList").innerHTML = filtered.length ? filtered.map(account => {
+      const disabled = Boolean(account.disabledAt);
+      return `
+        <div class="item">
+          <div class="item-head">
+            <div>
+              <div class="item-title">${escapeHtml(account.name || "Technicien sans nom")}</div>
+              <div class="item-meta">
+                Dépôt : <strong>${escapeHtml(account.depotNumber || "—")}</strong><br>
+                Pièces : ${Number(account.partCount || 0)} · Quantité totale : ${Number(account.totalQty || 0)}<br>
+                Dernière synchronisation : ${fmtDate(account.lastSyncAt)}<br>
+                ${disabled
+                  ? "Désactivé le " + fmtDate(account.disabledAt) + " · suppression prévue le " + fmtDate(account.scheduledDeleteAt)
+                  : "Compte actif · créé le " + fmtDate(account.createdAt)}
+              </div>
+            </div>
+            <span class="pill ${disabled ? "danger" : "ok"}">${disabled ? "Désactivé" : "Actif"}</span>
+          </div>
+          <div class="btnrow">
+            <button class="secondary" onclick="prefillReset('${escapeHtml(account.depotNumber)}')">PIN temporaire</button>
+            ${disabled ? `<button class="ok" onclick="prefillRestore('${escapeHtml(account.depotNumber)}')">Restaurer</button>` : ""}
+            <button class="danger" onclick="prefillDelete('${escapeHtml(account.depotNumber)}')">Supprimer</button>
+          </div>
+        </div>`;
+    }).join("") : '<div class="empty">Aucun compte correspondant.</div>';
+  }
+
+  function prefillReset(depot){
+    $("resetDepot").value = depot;
+    $("resetDepot").scrollIntoView({behavior:"smooth",block:"center"});
+  }
+
+  function prefillRestore(depot){
+    $("restoreDepot").value = depot;
+    $("restoreDepot").scrollIntoView({behavior:"smooth",block:"center"});
+  }
+
+  function prefillDelete(depot){
+    $("deleteDepot").value = depot;
+    $("deleteConfirmation").value = "";
+    $("deleteDepot").scrollIntoView({behavior:"smooth",block:"center"});
+  }
+
+  async function resetPin(){
+    const depotNumber = normalize($("resetDepot").value).toUpperCase();
+    const newPin = normalize($("temporaryPin").value);
+    if(!depotNumber){alert("Renseigne le numéro de dépôt.");return}
+    if(!/^\d{4,12}$/.test(newPin)){alert("Le PIN temporaire doit contenir entre 4 et 12 chiffres.");return}
+    if(!confirm("Créer un PIN temporaire pour le dépôt " + depotNumber + " ? Toutes ses anciennes connexions seront révoquées.")) return;
+
+    $("resetNotice").textContent = "Réinitialisation en cours…";
+    try{
+      const data = await api("/api/admin/reset-pin",{adminSecret:adminSecret(),depotNumber,newPin});
+      $("temporaryPin").value = "";
+      $("resetNotice").textContent = data.message || "PIN temporaire créé.";
+      alert("PIN temporaire créé pour " + (data.technicianName || "le technicien") + " — dépôt " + depotNumber + ".\n\nCommunique-lui ce PIN. Il devra le remplacer dès sa connexion.");
+      await loadAccounts();
+    }catch(error){
+      $("resetNotice").textContent = "Échec : " + error.message;
+      alert(error.message);
+    }
+  }
+
+  async function restoreAccount(){
+    const depotNumber = normalize($("restoreDepot").value).toUpperCase();
+    if(!depotNumber){alert("Renseigne le numéro de dépôt.");return}
+    if(!confirm("Restaurer le compte du dépôt " + depotNumber + " ?")) return;
+
+    $("restoreNotice").textContent = "Restauration en cours…";
+    try{
+      const data = await api("/api/admin/restore-account",{adminSecret:adminSecret(),depotNumber});
+      $("restoreNotice").textContent = data.message || "Compte restauré.";
+      alert(data.message || "Compte restauré.");
+      await loadAccounts();
+    }catch(error){
+      $("restoreNotice").textContent = "Échec : " + error.message;
+      alert(error.message);
+    }
+  }
+
+  async function deleteAccount(){
+    const depotNumber = normalize($("deleteDepot").value).toUpperCase();
+    const confirmation = normalize($("deleteConfirmation").value).toUpperCase();
+    if(!depotNumber){alert("Renseigne le numéro de dépôt.");return}
+    if(confirmation !== "SUPPRIMER"){alert("Écris exactement SUPPRIMER pour confirmer.");return}
+    if(!confirm("SUPPRESSION DÉFINITIVE du dépôt " + depotNumber + " ?\n\nLe compte, le stock, l'historique et les sauvegardes seront effacés.")) return;
+    if(!confirm("Dernière confirmation : cette opération est irréversible. Continuer ?")) return;
+
+    $("deleteNotice").textContent = "Suppression en cours…";
+    try{
+      const data = await api("/api/admin/delete-account",{adminSecret:adminSecret(),depotNumber,confirmation:"SUPPRIMER"});
+      $("deleteConfirmation").value = "";
+      $("deleteNotice").textContent = data.message || "Compte supprimé.";
+      alert(data.message || "Compte supprimé.");
+      await loadAccounts();
+    }catch(error){
+      $("deleteNotice").textContent = "Échec : " + error.message;
+      alert(error.message);
+    }
+  }
+</script>
+</body>
+</html>
