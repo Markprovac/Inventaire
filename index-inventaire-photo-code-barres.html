@@ -1,0 +1,3275 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Application de gestion de stock pour véhicules">
+<meta name="theme-color" content="#1e3a8a">
+
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+  <title>Stock Fourgon SAV</title>
+  <style>
+    :root{
+      --bg:#0f172a;
+      --card:#111827;
+      --card2:#1f2937;
+      --text:#f9fafb;
+      --muted:#cbd5e1;
+      --line:#334155;
+      --accent:#38bdf8;
+      --ok:#22c55e;
+      --warn:#f59e0b;
+      --danger:#ef4444;
+      --white:#ffffff;
+      --shadow:0 10px 30px rgba(0,0,0,.30);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+      background:linear-gradient(180deg,#0f172a,#111827);
+      color:var(--text);
+      min-height:100vh;
+    }
+    header{
+      position:sticky;
+      top:0;
+      z-index:20;
+      background:rgba(15,23,42,.96);
+      backdrop-filter:blur(10px);
+      border-bottom:1px solid var(--line);
+      padding:12px 14px;
+    }
+    .topbar{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      max-width:980px;
+      margin:auto;
+    }
+    .brand{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      min-width:0;
+    }
+    .brand h1{
+      font-size:18px;
+      margin:0;
+      letter-spacing:.2px;
+    }
+    .brand small{
+      color:var(--muted);
+      font-size:12px;
+    }
+    main{
+      width:100%;
+      max-width:980px;
+      margin:0 auto;
+      padding:14px;
+      padding-bottom:92px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:12px;
+    }
+    @media (min-width:760px){
+      .grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+      .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
+    .card{
+      background:rgba(17,24,39,.92);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:14px;
+      margin-bottom:14px;
+    }
+    .bigbtn{
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:18px 12px;
+      background:linear-gradient(180deg,#1f2937,#111827);
+      color:var(--text);
+      font-weight:800;
+      font-size:16px;
+      min-height:92px;
+      display:flex;
+      flex-direction:column;
+      align-items:flex-start;
+      justify-content:center;
+      gap:8px;
+      text-align:left;
+      box-shadow:var(--shadow);
+    }
+    .bigbtn span:first-child{font-size:27px;line-height:1}
+    .bigbtn small{font-weight:600;color:var(--muted)}
+    .btnrow{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+    }
+    button,.buttonlike{
+      border:0;
+      border-radius:13px;
+      padding:11px 13px;
+      background:var(--accent);
+      color:#04121a;
+      font-weight:800;
+      font-size:14px;
+      cursor:pointer;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+    }
+    button.secondary{background:#334155;color:var(--text);border:1px solid #475569}
+    button.ok{background:var(--ok);color:#04120a}
+    button.warn{background:var(--warn);color:#1a1000}
+    button.danger{background:var(--danger);color:white}
+    button.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    .hidden{display:none!important}
+    input,select,textarea{
+      width:100%;
+      border:1px solid #475569;
+      background:#0b1220;
+      color:var(--text);
+      border-radius:13px;
+      padding:12px;
+      font-size:16px;
+      outline:none;
+    }
+    textarea{min-height:88px;resize:vertical}
+    label{
+      display:block;
+      margin:0 0 6px;
+      color:var(--muted);
+      font-size:13px;
+      font-weight:700;
+    }
+    .field{margin-bottom:12px}
+    .form-grid{
+      display:grid;
+      gap:0 12px;
+    }
+    .muted{color:var(--muted)}
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 9px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      color:var(--muted);
+      font-size:12px;
+      font-weight:800;
+      background:#0b1220;
+    }
+    .pill.ok{border-color:rgba(34,197,94,.4);color:#bbf7d0}
+    .pill.warn{border-color:rgba(245,158,11,.45);color:#fde68a}
+    .pill.danger{border-color:rgba(239,68,68,.5);color:#fecaca}
+    .list{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .item{
+      border:1px solid var(--line);
+      background:rgba(31,41,55,.72);
+      border-radius:16px;
+      padding:12px;
+      display:grid;
+      gap:10px;
+    }
+    .item-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:10px;
+    }
+    .item-title{
+      font-weight:900;
+      font-size:16px;
+      word-break:break-word;
+    }
+    .item-meta{
+      color:var(--muted);
+      font-size:13px;
+      margin-top:3px;
+      line-height:1.35;
+    }
+    .thumb{
+      width:72px;
+      height:72px;
+      object-fit:cover;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:#0b1220;
+      flex:0 0 auto;
+    }
+    .detail-photo{
+      width:100%;
+      max-height:280px;
+      object-fit:contain;
+      border-radius:16px;
+      background:#0b1220;
+      border:1px solid var(--line);
+    }
+    .qty{
+      font-size:22px;
+      font-weight:950;
+    }
+    .qty.low{color:#fbbf24}
+    .qty.zero{color:#fca5a5}
+    .section-title{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin:0 0 12px;
+    }
+    .section-title h2{
+      margin:0;
+      font-size:19px;
+    }
+    .scanner-wrap{
+      position:relative;
+      overflow:hidden;
+      border-radius:18px;
+      border:1px solid var(--line);
+      background:#050816;
+      min-height:280px;
+    }
+    video{
+      width:100%;
+      max-height:58vh;
+      display:block;
+      background:#050816;
+    }
+    .scan-frame{
+      pointer-events:none;
+      position:absolute;
+      inset:18%;
+      border:3px solid rgba(56,189,248,.9);
+      border-radius:16px;
+      box-shadow:0 0 0 999px rgba(0,0,0,.25);
+    }
+    .scan-line{
+      position:absolute;
+      left:20%;
+      right:20%;
+      top:50%;
+      height:2px;
+      background:#38bdf8;
+      box-shadow:0 0 14px #38bdf8;
+    }
+    .notice{
+      border:1px solid rgba(56,189,248,.35);
+      background:rgba(56,189,248,.10);
+      color:#e0f2fe;
+      padding:12px;
+      border-radius:15px;
+      line-height:1.45;
+      margin-bottom:12px;
+    }
+    .notice.warn{
+      border-color:rgba(245,158,11,.45);
+      background:rgba(245,158,11,.12);
+      color:#fffbeb;
+    }
+    .notice.danger{
+      border-color:rgba(239,68,68,.45);
+      background:rgba(239,68,68,.12);
+      color:#fee2e2;
+    }
+    .bottom-nav{
+      position:fixed;
+      bottom:0;
+      left:0;
+      right:0;
+      z-index:30;
+      background:rgba(15,23,42,.97);
+      border-top:1px solid var(--line);
+      padding:9px;
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:8px;
+    }
+    .bottom-nav button{
+      padding:9px 4px;
+      font-size:12px;
+      border-radius:13px;
+      background:#1f2937;
+      color:var(--text);
+      border:1px solid var(--line);
+      flex-direction:column;
+      gap:2px;
+    }
+    .bottom-nav button.active{
+      background:var(--accent);
+      color:#04121a;
+    }
+    .empty{
+      text-align:center;
+      color:var(--muted);
+      padding:24px 8px;
+      border:1px dashed var(--line);
+      border-radius:16px;
+    }
+    .split{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
+    }
+    @media (min-width:760px){
+      .split{grid-template-columns:1fr 1fr}
+    }
+    .kpi{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:8px;
+    }
+    .kpi div{
+      background:#0b1220;
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:10px;
+    }
+    .kpi strong{
+      display:block;
+      font-size:20px;
+    }
+    .kpi span{
+      color:var(--muted);
+      font-size:12px;
+      font-weight:700;
+    }
+    .ocr-preview{
+      width:100%;
+      max-height:260px;
+      object-fit:contain;
+      border-radius:16px;
+      border:1px solid var(--line);
+      background:#0b1220;
+      margin-top:8px;
+    }
+    .ocr-crop-box{
+      margin-top:10px;
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:#0b1220;
+      padding:8px;
+    }
+    #ocrCanvas{
+      width:100%;
+      height:auto;
+      display:block;
+      border-radius:12px;
+      background:#050816;
+      touch-action:none;
+      user-select:none;
+    }
+    .progress{
+      height:12px;
+      width:100%;
+      background:#0b1220;
+      border:1px solid var(--line);
+      border-radius:999px;
+      overflow:hidden;
+    }
+    .progress div{
+      height:100%;
+      width:0%;
+      background:var(--accent);
+      transition:width .2s;
+    }
+    .mini{
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.35;
+    }
+    .danger-zone{
+      border-color:rgba(239,68,68,.45);
+    }
+    .searchbar{
+      position:sticky;
+      top:72px;
+      z-index:12;
+      background:rgba(15,23,42,.96);
+      padding:8px 0 12px;
+    }
+    .toast{
+      position:fixed;
+      left:12px;
+      right:12px;
+      bottom:78px;
+      background:#f8fafc;
+      color:#0f172a;
+      border-radius:16px;
+      padding:13px;
+      font-weight:900;
+      box-shadow:var(--shadow);
+      z-index:99;
+      transform:translateY(120px);
+      opacity:0;
+      transition:.25s;
+      text-align:center;
+    }
+    .toast.show{
+      transform:translateY(0);
+      opacity:1;
+    }
+    .app-dialog-backdrop{
+      position:fixed;
+      inset:0;
+      z-index:200;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      background:rgba(2,6,23,.76);
+      backdrop-filter:blur(5px);
+    }
+
+    .app-dialog{
+      width:min(100%,520px);
+      max-height:min(82vh,700px);
+      overflow:auto;
+      background:linear-gradient(180deg,#1f2937,#111827);
+      border:1px solid #475569;
+      border-radius:22px;
+      box-shadow:0 24px 70px rgba(0,0,0,.55);
+      padding:18px;
+    }
+
+    .app-dialog-head{
+      display:flex;
+      align-items:flex-start;
+      gap:12px;
+      margin-bottom:12px;
+    }
+
+    .app-dialog-icon{
+      width:42px;
+      height:42px;
+      flex:0 0 42px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:14px;
+      background:rgba(56,189,248,.14);
+      border:1px solid rgba(56,189,248,.35);
+      font-size:22px;
+    }
+
+    .app-dialog.danger .app-dialog-icon{
+      background:rgba(239,68,68,.14);
+      border-color:rgba(239,68,68,.4);
+    }
+
+    .app-dialog.warn .app-dialog-icon{
+      background:rgba(245,158,11,.14);
+      border-color:rgba(245,158,11,.4);
+    }
+
+    .app-dialog.success .app-dialog-icon{
+      background:rgba(34,197,94,.14);
+      border-color:rgba(34,197,94,.4);
+    }
+
+    .app-dialog-title{
+      margin:1px 0 4px;
+      font-size:21px;
+      font-weight:950;
+    }
+
+    .app-dialog-brand{
+      color:var(--muted);
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:.2px;
+    }
+
+    .app-dialog-message{
+      color:var(--text);
+      font-size:16px;
+      line-height:1.5;
+      white-space:pre-line;
+      overflow-wrap:anywhere;
+      padding:4px 0 16px;
+    }
+
+    .app-dialog-actions{
+      display:flex;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+      gap:9px;
+    }
+
+    .app-dialog-actions button{min-width:105px}
+    body.app-dialog-open{overflow:hidden}
+
+    .cloud-status-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+      margin-top:10px;
+    }
+    .cloud-result{
+      border-left:4px solid var(--accent);
+    }
+    .cloud-result.mine{
+      border-left-color:var(--ok);
+    }
+    .cloud-code{
+      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+      word-break:break-all;
+    }
+    .sync-spin{
+      display:inline-block;
+      animation:cloudSpin 1s linear infinite;
+    }
+    @keyframes cloudSpin{to{transform:rotate(360deg)}}
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:13px;
+    }
+    th,td{
+      border-bottom:1px solid var(--line);
+      padding:8px 6px;
+      text-align:left;
+      vertical-align:top;
+    }
+    th{color:var(--muted)}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topbar">
+      <div class="brand">
+        <h1>🚐 Stock Fourgon SAV</h1>
+        <small id="headerSub">Inventaire pièces détachées</small>
+      </div>
+      <button class="secondary" onclick="go('home')">Accueil</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="view-home">
+      <div class="card">
+        <div class="section-title">
+          <h2>Tableau de bord</h2>
+          <span class="pill" id="lastSavePill">Sauvegarde locale</span>
+        </div>
+        <div class="kpi">
+          <div><strong id="kpiParts">0</strong><span>Pièces</span></div>
+          <div><strong id="kpiQty">0</strong><span>Qté totale</span></div>
+          <div><strong id="kpiLow">0</strong><span>À recommander</span></div>
+        </div>
+      </div>
+
+      <div class="card" id="cloudSummaryCard">
+        <div class="section-title">
+          <h2>☁️ Sauvegarde Cloud</h2>
+          <span class="pill" id="cloudStatusPill">Non configurée</span>
+        </div>
+        <div id="cloudIdentitySummary" class="muted">Renseigne ton numéro de dépôt technicien pour activer la sauvegarde en ligne.</div>
+        <div class="cloud-status-row">
+          <button class="ok" onclick="manualCloudSync()">↻ Synchroniser maintenant</button>
+          <button class="secondary" onclick="go('colleagueSearch')">🔎 Rechercher chez les collègues</button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <button class="bigbtn" onclick="startScan('lookup')"><span>📷</span>Scanner<small>Code-barres pièce</small></button>
+        <button class="bigbtn" onclick="startScan('entree')"><span>➕</span>Entrée stock<small>Scanner puis ajouter</small></button>
+        <button class="bigbtn" onclick="startScan('sortie')"><span>➖</span>Sortie stock<small>Scanner puis retirer</small></button>
+        <button class="bigbtn" onclick="currentAction='lookup';go('ocr')"><span>🏷️</span>Lire texte / commande<small>OCR si code-barres absent</small></button>
+        <button class="bigbtn" onclick="newPart()"><span>🧩</span>Ajouter pièce<small>Saisie manuelle</small></button>
+        <button class="bigbtn" onclick="go('inventory')"><span>📦</span>Inventaire<small>Recherche et fiches</small></button>
+        <button class="bigbtn" onclick="go('low')"><span>⚠️</span>À commander<small>Stock mini atteint</small></button>
+        <button class="bigbtn" onclick="go('tools')"><span>🗂️</span>Import / Export<small>CSV et sauvegarde</small></button>
+        <button class="bigbtn" onclick="go('colleagueSearch')"><span>🔎</span>Recherche collègues<small>Qui possède cette pièce ?</small></button>
+        <button class="bigbtn" onclick="go('cloud')"><span>☁️</span>Mon compte cloud<small>Dépôt et synchronisation</small></button>
+      </div>
+
+      <div class="card">
+        <h2 style="margin-top:0">Derniers mouvements</h2>
+        <div id="recentMoves" class="list"></div>
+      </div>
+    </section>
+
+    <section id="view-scan" class="hidden">
+      <div class="card">
+        <div class="section-title">
+          <h2 id="scanTitle">Scanner</h2>
+          <button class="secondary" onclick="stopScanner();go('home')">Fermer</button>
+        </div>
+        <div id="scanSupport" class="notice"></div>
+        <div class="scanner-wrap">
+          <video id="video" playsinline muted></video>
+          <div class="scan-frame"></div>
+          <div class="scan-line"></div>
+        </div>
+        <div class="field" style="margin-top:12px">
+          <label>Code-barres mal lu ? Saisis la référence ou le code manuellement</label>
+          <input id="manualCode" placeholder="Ex : 123456789, REF-ABC..." />
+        </div>
+        <div class="btnrow">
+          <button onclick="manualScan()">Valider le code</button>
+          <button class="secondary" onclick="go('ocr')">Lire texte / commande OCR</button>
+          <button class="ghost" onclick="newPart()">Ajouter sans code-barres</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-ocr" class="hidden">
+      <div class="card">
+        <div class="section-title">
+          <h2>Lecture texte / étiquette / commande</h2>
+          <button class="secondary" onclick="go('home')">Retour</button>
+        </div>
+        <div class="notice warn">
+          L'OCR sert quand le code-barres ne passe pas ou quand tu as une feuille de commande sans code-barres. Prends l'étiquette ou la feuille bien droite, bien éclairée, puis vérifie le texte avant d'enregistrer.
+        </div>
+        <div class="field">
+          <label>Photo de l'étiquette, du code-barres ou de la feuille de commande</label>
+          <input id="ocrImageInput" type="file" accept="image/*" capture="environment" onchange="previewOcrImage(event)" />
+          <img id="ocrPreview" class="ocr-preview hidden" alt="Prévisualisation OCR" />
+          <div id="ocrCanvasBox" class="ocr-crop-box hidden">
+            <canvas id="ocrCanvas"></canvas>
+            <p class="mini">
+              Trace un rectangle avec le doigt sur la zone à lire : référence, numéro, ligne de commande ou texte sous le code-barres.
+            </p>
+          </div>
+        </div>
+        <div class="btnrow">
+          <button onclick="runOCR()">Analyser toute la photo</button>
+          <button class="secondary" onclick="runOCRSelection()">Analyser la sélection</button>
+          <button class="secondary" onclick="clearOcrSelection()">Effacer sélection</button>
+          <button class="secondary" onclick="smartAnalyzeReferences()">Analyser les références</button>
+          <button class="secondary" onclick="newPartFromOCR()">Créer une fiche avec ce texte</button>
+        </div>
+        <div id="ocrProgressBox" class="hidden" style="margin-top:12px">
+          <div class="progress"><div id="ocrProgress"></div></div>
+          <p id="ocrStatus" class="mini">Analyse en cours...</p>
+        </div>
+        <div class="field" style="margin-top:12px">
+          <label>Texte détecté / à corriger</label>
+          <textarea id="ocrText" oninput="analyzeOcrText(false)" placeholder="Le texte lu sur l'étiquette ou la feuille apparaîtra ici. Tu peux le corriger avant de créer la fiche."></textarea>
+        </div>
+        <div id="ocrCandidatesBox" class="hidden"></div>
+      </div>
+    </section>
+
+    <section id="view-inventory" class="hidden">
+      <div class="searchbar">
+        <input id="searchInput" placeholder="Rechercher : référence, désignation, marque, emplacement..." oninput="renderInventory()" />
+      </div>
+      <div class="card">
+        <div class="section-title">
+          <h2>Inventaire</h2>
+          <button onclick="newPart()">+ Pièce</button>
+        </div>
+        <div id="inventoryList" class="list"></div>
+      </div>
+    </section>
+
+    <section id="view-low" class="hidden">
+      <div class="card">
+        <div class="section-title">
+          <h2>Pièces à recommander</h2>
+          <button class="secondary" onclick="go('inventory')">Inventaire</button>
+        </div>
+        <div id="lowList" class="list"></div>
+      </div>
+    </section>
+
+    <section id="view-detail" class="hidden">
+      <div class="card">
+        <div class="section-title">
+          <h2>Fiche pièce</h2>
+          <button class="secondary" onclick="go('inventory')">Retour</button>
+        </div>
+        <div id="detailContent"></div>
+      </div>
+    </section>
+
+    <section id="view-form" class="hidden">
+      <div class="card">
+        <div class="section-title">
+          <h2 id="formTitle">Ajouter une pièce</h2>
+          <button class="secondary" onclick="go(previousView || 'home')">Annuler</button>
+        </div>
+        <form id="partForm" onsubmit="savePart(event)">
+          <input type="hidden" id="partId" />
+          <div class="form-grid">
+            <div class="field">
+              <label>Code-barres</label>
+              <input id="fBarcode" placeholder="Scan ou saisie manuelle" onblur="checkDuplicateInForm('barcode')" />
+            </div>
+            <div class="field">
+              <label>Référence pièce</label>
+              <input id="fReference" placeholder="Ex : 985421" onblur="checkDuplicateInForm('reference')" />
+            </div>
+            <div class="field">
+              <label>Désignation *</label>
+              <input id="fDesignation" required placeholder="Ex : CAPTEUR FIN DE COURSE" autocapitalize="characters" oninput="this.value=this.value.toLocaleUpperCase('fr-FR')" />
+            </div>
+            <div class="field">
+              <label>Type de pièce</label>
+              <input id="fType" list="typeList" placeholder="Ex : Capteur, carte, courroie..." />
+              <datalist id="typeList">
+                <option>Capteur</option><option>Carte électronique</option><option>Courroie</option><option>Fusible</option>
+                <option>Joint</option><option>Flexible</option><option>Vérin</option><option>Moteur</option>
+                <option>Contacteur</option><option>Interrupteur</option><option>Raccord</option><option>Roulement</option>
+              </datalist>
+            </div>
+            <div class="field">
+              <label>Marque</label>
+              <input id="fBrand" placeholder="Ex : Corghi, Werther, Ravaglioli..." />
+            </div>
+            <div class="field">
+              <label>Machine concernée</label>
+              <input id="fMachine" list="machineList" placeholder="Pont, démonte-pneu, équilibreuse..." />
+              <datalist id="machineList">
+                <option>Pont élévateur</option><option>Démonte-pneu</option><option>Équilibreuse</option>
+                <option>Compresseur</option><option>Géométrie</option><option>Climatisation</option><option>Divers</option>
+              </datalist>
+            </div>
+            <div class="field">
+              <label>Emplacement fourgon</label>
+              <input id="fLocation" placeholder="Ex : Bac 3, tiroir gauche..." />
+            </div>
+            <div class="field">
+              <label>Fournisseur</label>
+              <input id="fSupplier" placeholder="Ex : Dépôt, fournisseur..." />
+            </div>
+            <div class="field">
+              <label>Quantité actuelle</label>
+              <input id="fQty" type="number" min="0" step="1" value="0" />
+            </div>
+            <div class="field">
+              <label>Stock minimum</label>
+              <input id="fMinQty" type="number" min="0" step="1" value="0" />
+            </div>
+            <div class="field">
+              <label>Prix approximatif</label>
+              <input id="fPrice" type="text" inputmode="decimal" placeholder="Ex : 12,50" />
+            </div>
+            <div class="field">
+              <label>Photo de la pièce</label>
+              <input id="fPhoto" type="file" accept="image/*" capture="environment" onchange="loadPartPhoto(event)" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Texte étiquette / notes</label>
+            <textarea id="fNotes" placeholder="Compatibilité, référence fabricant, modèle machine, infos utiles..."></textarea>
+          </div>
+          <img id="photoPreview" class="detail-photo hidden" alt="Photo pièce" />
+          <div class="btnrow" style="margin-top:12px">
+            <button type="submit" class="ok">Enregistrer</button>
+            <button type="button" class="secondary" onclick="clearForm()">Vider</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section id="view-move" class="hidden">
+      <div class="card">
+        <div class="section-title">
+          <h2 id="moveTitle">Mouvement</h2>
+          <button class="secondary" onclick="go('detail')">Annuler</button>
+        </div>
+        <div id="movePartSummary" class="notice"></div>
+        <div class="field">
+          <label id="moveQtyLabel">Quantité</label>
+          <input id="moveQty" type="number" min="1" step="1" value="1" />
+        </div>
+        <div class="field">
+          <label>Note intervention / client / motif</label>
+          <textarea id="moveNote" placeholder="Ex : Garage Durand, remplacé sur pont 2 colonnes..."></textarea>
+        </div>
+        <div class="btnrow">
+          <button id="moveValidateBtn" onclick="validateMove()" class="ok">Valider</button>
+          <button class="secondary" onclick="showDetail(currentPartId)">Retour fiche</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-history" class="hidden">
+      <div class="card">
+        <div class="section-title">
+          <h2>Historique</h2>
+          <button class="secondary" onclick="go('home')">Accueil</button>
+        </div>
+        <div id="historyList" class="list"></div>
+      </div>
+    </section>
+
+    <section id="view-colleagueSearch" class="hidden">
+      <div class="card">
+        <div class="section-title">
+          <h2>Rechercher une pièce chez les collègues</h2>
+          <button class="secondary" onclick="go('home')">Retour</button>
+        </div>
+        <div class="notice">
+          La recherche consulte les stocks dans le cloud des techniciens connectés. Chaque collègue conserve son inventaire personnel et personne ne peut modifier le stock d'un autre.
+        </div>
+        <div class="field">
+          <label>Référence, code-barres ou désignation</label>
+          <input id="colleagueSearchInput" placeholder="Ex : 985421, capteur, flexible..." onkeydown="if(event.key==='Enter'){event.preventDefault();searchColleagueStock();}" />
+        </div>
+        <div class="btnrow">
+          <button onclick="searchColleagueStock()">Rechercher</button>
+          <button class="secondary" onclick="useScannedCodeForColleagueSearch()">Utiliser le code saisi au scanner</button>
+        </div>
+        <div id="colleagueSearchStatus" class="mini" style="margin-top:12px"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">
+          <h2>Résultats</h2>
+          <span class="pill" id="colleagueResultCount">0 résultat</span>
+        </div>
+        <div id="colleagueSearchResults" class="list"><div class="empty">Lance une recherche pour voir qui possède la pièce.</div></div>
+      </div>
+    </section>
+
+    <section id="view-cloud" class="hidden">
+      <div class="card">
+        <div class="section-title">
+          <h2>Compte technicien</h2>
+          <button class="secondary" onclick="go('home')">Retour</button>
+        </div>
+        <div class="notice">
+          Le numéro de dépôt identifie ton stock personnel. Le code PIN empêche un autre utilisateur de modifier ton inventaire en saisissant simplement ton numéro.
+        </div>
+        <div class="form-grid">
+          <div class="field">
+            <label>Nom du technicien</label>
+            <input id="cloudTechnicianName" autocomplete="name" placeholder="Ex : Marc Rustenholtz" />
+          </div>
+          <div class="field">
+            <label>Numéro de dépôt technicien *</label>
+            <input id="cloudDepotNumber" autocomplete="username" placeholder="Ex : 1254" />
+          </div>
+          <div class="field">
+            <label>Code PIN personnel *</label>
+            <input id="cloudPin" type="password" inputmode="numeric" autocomplete="current-password" minlength="4" maxlength="12" placeholder="4 à 12 chiffres" />
+          </div>
+        </div>
+        <div class="btnrow">
+          <button class="ok" onclick="cloudConnect()">Créer le compte / se connecter</button>
+          <button class="secondary" onclick="forgotCloudPin()">Code PIN oublié ?</button>
+          <button class="ghost" onclick="cloudLogout()">Déconnecter ce téléphone</button>
+        </div>
+        <div id="cloudAccountNotice" class="notice warn" style="margin-top:12px">La sauvegarde en ligne n'est pas encore configurée sur ce téléphone.</div>
+      </div>
+
+      <div class="card" id="changePinCard">
+        <h2 style="margin-top:0">Modifier mon code PIN</h2>
+        <p class="muted">Le stock et l'historique ne sont pas modifiés. Après une réinitialisation par l'administrateur, saisis ici le PIN temporaire puis choisis ton nouveau PIN personnel.</p>
+        <div class="form-grid">
+          <div class="field">
+            <label>PIN actuel ou temporaire</label>
+            <input id="currentCloudPin" type="password" inputmode="numeric" autocomplete="current-password" minlength="4" maxlength="12" placeholder="4 à 12 chiffres" />
+          </div>
+          <div class="field">
+            <label>Nouveau PIN</label>
+            <input id="newCloudPin" type="password" inputmode="numeric" autocomplete="new-password" minlength="4" maxlength="12" placeholder="4 à 12 chiffres" />
+          </div>
+          <div class="field">
+            <label>Confirmer le nouveau PIN</label>
+            <input id="confirmCloudPin" type="password" inputmode="numeric" autocomplete="new-password" minlength="4" maxlength="12" placeholder="Répète le nouveau PIN" />
+          </div>
+        </div>
+        <button class="ok" onclick="changeCloudPin()">Enregistrer mon nouveau PIN</button>
+        <div id="changePinNotice" class="mini" style="margin-top:10px"></div>
+      </div>
+      <div class="card">
+        <h2 style="margin-top:0">Synchronisation de mon stock</h2>
+        <p class="muted">Chaque modification reste d'abord enregistrée sur le téléphone, puis elle est envoyée automatiquement vers ton stock cloud. Les photos restent dans ton téléphone.</p>
+        <div class="btnrow">
+          <button onclick="pushCloudSnapshot(false)">⬆️ Envoyer ce téléphone vers le cloud</button>
+          <button class="secondary" onclick="pullCloudSnapshot(true)">⬇️ Récupérer mon stock du cloud</button>
+        </div>
+        <div id="cloudSyncDetails" class="mini" style="margin-top:12px"></div>
+      </div>
+
+      <div class="card">
+        <h2 style="margin-top:0">Sauvegardes quotidiennes</h2>
+        <p class="muted">Chaque nuit une sauvegarde est effectuée dans le cloud et conserve les 30 derniers jours.</p>
+        <div class="btnrow">
+          <button class="secondary" onclick="loadCloudBackups()">Afficher mes sauvegardes</button>
+        </div>
+        <div class="field" style="margin-top:12px">
+          <label>Sauvegarde à restaurer</label>
+          <select id="cloudBackupSelect"><option value="">Aucune sauvegarde chargée</option></select>
+        </div>
+        <button class="warn" onclick="restoreCloudBackup()">Restaurer cette sauvegarde</button>
+      </div>
+
+      <div class="card danger-zone">
+        <h2 style="margin-top:0">Supprimer mon compte cloud</h2>
+        <div class="notice danger">
+          Cette opération désactive ton compte pendant 30 jours. Ton stock dans le cloud reste restaurable par l'administrateur pendant ce délai, puis il est supprimé définitivement. Le stock présent sur ce téléphone n'est pas effacé.
+        </div>
+        <p class="muted">
+          Ce bouton ne sert pas à changer de téléphone : pour cela, reconnecte simplement le nouvel appareil avec le même numéro de dépôt et le même PIN.
+        </p>
+        <div class="form-grid">
+          <div class="field">
+            <label>Numéro de dépôt à désactiver</label>
+            <input id="deleteCloudDepot" autocomplete="off" placeholder="Ton numéro de dépôt" />
+          </div>
+          <div class="field">
+            <label>Code PIN actuel</label>
+            <input id="deleteCloudPin" type="password" inputmode="numeric" autocomplete="current-password" minlength="4" maxlength="12" placeholder="4 à 12 chiffres" />
+          </div>
+          <div class="field">
+            <label>Confirmation</label>
+            <input id="deleteCloudConfirmation" autocomplete="off" placeholder="Écris SUPPRIMER" />
+          </div>
+        </div>
+        <button class="danger" onclick="deactivateCloudAccount()">Désactiver mon compte cloud</button>
+        <div id="deleteCloudNotice" class="mini" style="margin-top:10px"></div>
+      </div>
+    </section>
+
+    <section id="view-tools" class="hidden">
+      <div class="card">
+        <div class="section-title">
+          <h2>Import / Export</h2>
+          <button class="secondary" onclick="go('home')">Retour</button>
+        </div>
+        <div class="notice">
+          Le CSV est pratique pour Excel. La sauvegarde JSON conserve aussi les photos et l'historique.
+        </div>
+        <div class="btnrow">
+          <button onclick="exportCSV()">Exporter inventaire CSV</button>
+          <button onclick="exportShoppingCSV()" class="warn">Exporter à recommander CSV</button>
+          <button onclick="exportJSON()" class="secondary">Sauvegarde complète JSON</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 style="margin-top:0">Importer</h2>
+        <div class="field">
+          <label>Importer CSV ou sauvegarde JSON</label>
+          <input id="importFile" type="file" accept=".csv,.json,text/csv,application/json" onchange="importFile(event)" />
+        </div>
+        <p class="mini">
+          Colonnes CSV acceptées : code-barres, référence, désignation, type, marque, machine, emplacement, quantité, stock minimum, fournisseur, prix, notes.
+        </p>
+      </div>
+
+      <div class="card danger-zone">
+        <h2 style="margin-top:0">Zone sensible</h2>
+        <p class="muted">À utiliser seulement si tu veux repartir de zéro sur ce téléphone.</p>
+        <button class="danger" onclick="resetAll()">Effacer tout l'inventaire</button>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <button id="navHome" onclick="go('home')">🏠<span>Accueil</span></button>
+    <button id="navScan" onclick="startScan('lookup')">📷<span>Scan</span></button>
+    <button id="navInventory" onclick="go('inventory')">📦<span>Stock</span></button>
+    <button id="navHistory" onclick="go('history')">🕘<span>Historique</span></button>
+  </nav>
+
+  <div id="appDialogBackdrop" class="app-dialog-backdrop hidden" aria-hidden="true">
+    <div id="appDialogBox" class="app-dialog" role="dialog" aria-modal="true" aria-labelledby="appDialogTitle" aria-describedby="appDialogMessage">
+      <div class="app-dialog-head">
+        <div id="appDialogIcon" class="app-dialog-icon">ℹ️</div>
+        <div>
+          <div class="app-dialog-brand">🚐 Stock Fourgon SAV</div>
+          <h2 id="appDialogTitle" class="app-dialog-title">Information</h2>
+        </div>
+      </div>
+      <div id="appDialogMessage" class="app-dialog-message"></div>
+      <div class="app-dialog-actions">
+        <button id="appDialogCancel" class="secondary hidden" type="button">Annuler</button>
+        <button id="appDialogConfirm" type="button">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script>
+    const STORAGE_KEY = "stock_fourgon_sav_v1";
+    const CLOUD_TOKEN_KEY = "stock_fourgon_cloud_token_v1";
+    // Adresse fixe de l'API : les techniciens n'ont rien à saisir.
+    const DEFAULT_CLOUD_SERVICE_URL = "https://stock-fourgon-api.markrusten-e08.workers.dev";
+    let cloudToken = localStorage.getItem(CLOUD_TOKEN_KEY) || "";
+    let cloudSyncTimer = null;
+    let cloudSyncRunning = false;
+    let cloudStatusMessage = "";
+    let db = { parts: [], moves: [], settings: { createdAt: new Date().toISOString() } };
+    let currentView = "home";
+    let previousView = "home";
+    let currentAction = "lookup";
+    let currentPartId = null;
+    let currentMoveType = null;
+    let videoStream = null;
+    let scanLoopActive = false;
+    let scannedRecently = false;
+    let scanCandidateCode = "";
+    let scanCandidateFormat = "";
+    let scanCandidateCount = 0;
+    const SCAN_REQUIRED_READS = 3;
+    let tempPhotoData = "";
+    let ocrImageData = "";
+    let ocrCanvasImage = null;
+    let ocrSelection = null;
+    let ocrIsSelecting = false;
+    let ocrSelectionStart = null;
+
+    const $ = (id) => document.getElementById(id);
+
+    const appDialogQueue = [];
+    let appDialogActive = null;
+
+    function appAlert(message, options = {}){
+      return enqueueAppDialog({
+        mode:"alert",
+        message,
+        title:options.title || "Information",
+        type:options.type || "info",
+        confirmText:options.confirmText || "OK"
+      });
+    }
+
+    function appConfirm(message, options = {}){
+      return enqueueAppDialog({
+        mode:"confirm",
+        message,
+        title:options.title || "Confirmation",
+        type:options.type || "warn",
+        confirmText:options.confirmText || "Confirmer",
+        cancelText:options.cancelText || "Annuler"
+      });
+    }
+
+    function enqueueAppDialog(config){
+      return new Promise(resolve => {
+        appDialogQueue.push({config, resolve});
+        showNextAppDialog();
+      });
+    }
+
+    function showNextAppDialog(){
+      if(appDialogActive || !appDialogQueue.length) return;
+      appDialogActive = appDialogQueue.shift();
+      const {config} = appDialogActive;
+      const backdrop = $("appDialogBackdrop");
+      const box = $("appDialogBox");
+      const cancel = $("appDialogCancel");
+      const confirmButton = $("appDialogConfirm");
+      const icons = {info:"ℹ️", warn:"⚠️", danger:"⚠️", success:"✅"};
+
+      box.className = "app-dialog " + (config.type || "info");
+      $("appDialogIcon").textContent = icons[config.type] || "ℹ️";
+      $("appDialogTitle").textContent = config.title || "Stock Fourgon SAV";
+      $("appDialogMessage").textContent = String(config.message ?? "");
+      confirmButton.textContent = config.confirmText || "OK";
+      cancel.textContent = config.cancelText || "Annuler";
+      cancel.classList.toggle("hidden", config.mode !== "confirm");
+      confirmButton.className = config.type === "danger" ? "danger" : (config.type === "warn" ? "warn" : (config.type === "success" ? "ok" : ""));
+
+      backdrop.classList.remove("hidden");
+      backdrop.setAttribute("aria-hidden", "false");
+      document.body.classList.add("app-dialog-open");
+      setTimeout(()=>confirmButton.focus(), 20);
+    }
+
+    function closeAppDialog(value){
+      if(!appDialogActive) return;
+      const current = appDialogActive;
+      appDialogActive = null;
+      $("appDialogBackdrop").classList.add("hidden");
+      $("appDialogBackdrop").setAttribute("aria-hidden", "true");
+      document.body.classList.remove("app-dialog-open");
+      current.resolve(Boolean(value));
+      setTimeout(showNextAppDialog, 0);
+    }
+
+    $("appDialogConfirm").addEventListener("click", ()=>closeAppDialog(true));
+    $("appDialogCancel").addEventListener("click", ()=>closeAppDialog(false));
+    document.addEventListener("keydown", event => {
+      if(!appDialogActive) return;
+      if(event.key === "Escape"){
+        event.preventDefault();
+        closeAppDialog(appDialogActive.config.mode !== "confirm");
+      }else if(event.key === "Enter"){
+        event.preventDefault();
+        closeAppDialog(true);
+      }
+    });
+
+    function friendlyServiceMessage(message){
+      const providerName = new RegExp("Cloud" + "flare", "gi");
+      const runtimeName = new RegExp("Work" + "er(?:\\s+cloud)?", "gi");
+      return String(message || "")
+        .replace(providerName, "cloud")
+        .replace(runtimeName, "service en ligne")
+        .replace(/https?:\/\/[^\s]+\.workers\.dev\/?/gi, "service en ligne");
+    }
+
+    function uid(){
+      return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+    }
+
+    function nowISO(){
+      return new Date().toISOString();
+    }
+
+    function fmtDate(iso){
+      if(!iso) return "";
+      const d = new Date(iso);
+      return d.toLocaleString("fr-FR", { dateStyle:"short", timeStyle:"short" });
+    }
+
+    function normalize(s){
+      return (s || "").toString().trim();
+    }
+
+    function upperDesignation(s){
+      return normalize(s).toLocaleUpperCase("fr-FR");
+    }
+
+    function lower(s){
+      return normalize(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+    }
+
+    function toast(msg){
+      const t = $("toast");
+      t.textContent = msg;
+      t.classList.add("show");
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(()=>t.classList.remove("show"), 2300);
+    }
+
+    function load(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(raw){
+          const parsed = JSON.parse(raw);
+          db = {
+            parts: Array.isArray(parsed.parts) ? parsed.parts.map(p=>({ ...p, designation: upperDesignation(p.designation) })) : [],
+            moves: Array.isArray(parsed.moves) ? parsed.moves : [],
+            settings: parsed.settings || {}
+          };
+        }
+        db.settings = db.settings || {};
+        if(!db.settings.createdAt) db.settings.createdAt = nowISO();
+      }catch(e){
+        console.error(e);
+        toast("Erreur lecture sauvegarde locale");
+      }
+    }
+
+    function save(options = {}){
+      try{
+        db.settings.lastSave = nowISO();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+        renderStats();
+        renderCloudSummary();
+        if(!options.skipCloud) queueCloudSync();
+      }catch(e){
+        console.error(e);
+        appAlert("Sauvegarde impossible. Il y a peut-être trop de photos stockées. Essaie d'exporter puis de supprimer quelques photos.");
+      }
+    }
+
+    function go(view){
+      if(currentView === "scan" && view !== "scan") stopScanner();
+      previousView = currentView;
+      currentView = view;
+      document.querySelectorAll("main > section").forEach(s=>s.classList.add("hidden"));
+      $("view-" + view).classList.remove("hidden");
+      setNavActive(view);
+      $("headerSub").textContent = ({
+        home:"Inventaire pièces détachées",
+        scan:"Scanner code-barres",
+        ocr:"Lecture texte / commande",
+        inventory:"Liste inventaire",
+        low:"Pièces à recommander",
+        detail:"Fiche pièce",
+        form:"Ajouter / modifier",
+        move:"Entrée / sortie",
+        history:"Historique des mouvements",
+        colleagueSearch:"Recherche dans les stocks collègues",
+        cloud:"Compte et sauvegarde en ligne",
+        tools:"Import / Export"
+      })[view] || "Stock Fourgon SAV";
+      if(view === "home") { renderHome(); }
+      if(view === "inventory") { renderInventory(); }
+      if(view === "low") { renderLow(); }
+      if(view === "history") { renderHistory(); }
+      if(view === "cloud") { renderCloudPage(); }
+      if(view === "colleagueSearch") { renderColleagueSearchPage(); }
+      window.scrollTo({top:0, behavior:"smooth"});
+    }
+
+    function setNavActive(view){
+      $("navHome").classList.toggle("active", view === "home");
+      $("navScan").classList.toggle("active", view === "scan" || view === "ocr");
+      $("navInventory").classList.toggle("active", view === "inventory" || view === "detail" || view === "form" || view === "low");
+      $("navHistory").classList.toggle("active", view === "history");
+    }
+
+    function renderStats(){
+      const qtyTotal = db.parts.reduce((sum,p)=>sum + Number(p.qty || 0), 0);
+      const low = db.parts.filter(isLow).length;
+      $("kpiParts").textContent = db.parts.length;
+      $("kpiQty").textContent = qtyTotal;
+      $("kpiLow").textContent = low;
+      const last = db.settings.lastSave ? "Sauvé " + fmtDate(db.settings.lastSave) : "Sauvegarde locale";
+      $("lastSavePill").textContent = last;
+    }
+
+    function renderHome(){
+      renderStats();
+      const recent = [...db.moves].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+      const box = $("recentMoves");
+      if(!recent.length){
+        box.innerHTML = `<div class="empty">Aucun mouvement pour l'instant.</div>`;
+        return;
+      }
+      box.innerHTML = recent.map(moveCard).join("");
+    }
+
+    function getPart(id){
+      return db.parts.find(p=>p.id === id);
+    }
+
+    function isLow(p){
+      return Number(p.minQty || 0) > 0 && Number(p.qty || 0) <= Number(p.minQty || 0);
+    }
+
+    function stockPill(p){
+      const q = Number(p.qty || 0);
+      if(q <= 0) return `<span class="pill danger">Stock 0</span>`;
+      if(isLow(p)) return `<span class="pill warn">À recommander</span>`;
+      return `<span class="pill ok">Stock OK</span>`;
+    }
+
+    function partCard(p){
+      const photo = p.photoData ? `<img class="thumb" src="${p.photoData}" alt="">` : `<div class="thumb" style="display:flex;align-items:center;justify-content:center;color:#64748b;font-size:26px">🧩</div>`;
+      const qClass = Number(p.qty || 0) <= 0 ? "zero" : (isLow(p) ? "low" : "");
+      return `
+        <div class="item">
+          <div class="item-head">
+            <div style="min-width:0">
+              <div class="item-title">${escapeHtml(p.designation || "Pièce sans nom")}</div>
+              <div class="item-meta">
+                Réf : ${escapeHtml(p.reference || "-")} · Code : ${escapeHtml(p.barcode || "-")}<br>
+                ${escapeHtml([p.typePiece, p.brand, p.machine].filter(Boolean).join(" · ") || "Type / marque non renseigné")}<br>
+                Emplacement : ${escapeHtml(p.location || "-")}
+              </div>
+            </div>
+            ${photo}
+          </div>
+          <div class="btnrow" style="justify-content:space-between">
+            <div>
+              <span class="qty ${qClass}">${Number(p.qty || 0)}</span>
+              <span class="muted"> en stock</span>
+              ${stockPill(p)}
+            </div>
+          </div>
+          <div class="btnrow">
+            <button onclick="showDetail('${p.id}')">Ouvrir</button>
+            <button class="ok" onclick="openMove('${p.id}','entree')">+ Entrée</button>
+            <button class="warn" onclick="openMove('${p.id}','sortie')">- Sortie</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderInventory(){
+      const q = lower($("searchInput").value);
+      let list = [...db.parts].sort((a,b)=>lower(a.designation).localeCompare(lower(b.designation)));
+      if(q){
+        list = list.filter(p => lower([
+          p.barcode, p.reference, p.designation, p.typePiece, p.brand, p.machine,
+          p.location, p.supplier, p.notes
+        ].join(" ")).includes(q));
+      }
+      $("inventoryList").innerHTML = list.length ? list.map(partCard).join("") : `<div class="empty">Aucune pièce trouvée.</div>`;
+    }
+
+    function renderLow(){
+      const list = db.parts.filter(isLow).sort((a,b)=>Number(a.qty||0)-Number(b.qty||0));
+      $("lowList").innerHTML = list.length ? list.map(partCard).join("") : `<div class="empty">Nickel : aucune pièce sous le stock minimum.</div>`;
+    }
+
+    function moveCard(m){
+      const p = getPart(m.partId) || {};
+      const sign = m.type === "entree" ? "+" : "-";
+      const cls = m.type === "entree" ? "ok" : "warn";
+      return `
+        <div class="item">
+          <div class="item-head">
+            <div>
+              <div class="item-title">${m.type === "entree" ? "Entrée" : "Sortie"} ${sign}${Number(m.qty || 0)} · ${escapeHtml(p.designation || m.designationSnapshot || "Pièce supprimée")}</div>
+              <div class="item-meta">
+                ${fmtDate(m.date)}<br>
+                Stock : ${Number(m.previousQty ?? 0)} → ${Number(m.newQty ?? 0)}<br>
+                ${escapeHtml(m.note || "")}
+              </div>
+            </div>
+            <span class="pill ${cls}">${m.type === "entree" ? "Entrée" : "Sortie"}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderHistory(){
+      const list = [...db.moves].sort((a,b)=>new Date(b.date)-new Date(a.date));
+      $("historyList").innerHTML = list.length ? list.map(moveCard).join("") : `<div class="empty">Aucun mouvement enregistré.</div>`;
+    }
+
+    function showDetail(id){
+      const p = getPart(id);
+      if(!p){ toast("Pièce introuvable"); go("inventory"); return; }
+      currentPartId = id;
+      const photo = p.photoData ? `<img class="detail-photo" src="${p.photoData}" alt="Photo pièce">` : `<div class="empty">Pas encore de photo pour cette pièce.</div>`;
+      const qClass = Number(p.qty || 0) <= 0 ? "zero" : (isLow(p) ? "low" : "");
+      const moves = db.moves.filter(m=>m.partId === id).sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,8);
+      $("detailContent").innerHTML = `
+        ${photo}
+        <div style="margin-top:14px">
+          <h2 style="margin:0 0 6px">${escapeHtml(p.designation || "Pièce sans nom")}</h2>
+          <div class="btnrow">
+            ${stockPill(p)}
+            <span class="pill">Mini : ${Number(p.minQty || 0)}</span>
+            <span class="pill">MAJ : ${fmtDate(p.updatedAt || p.createdAt)}</span>
+          </div>
+        </div>
+
+        <div class="card" style="box-shadow:none;margin-top:14px;background:#0b1220">
+          <div class="qty ${qClass}">${Number(p.qty || 0)} <span class="muted" style="font-size:14px;font-weight:700">en stock</span></div>
+          <table>
+            <tr><th>Code-barres</th><td>${escapeHtml(p.barcode || "-")}</td></tr>
+            <tr><th>Référence</th><td>${escapeHtml(p.reference || "-")}</td></tr>
+            <tr><th>Type</th><td>${escapeHtml(p.typePiece || "-")}</td></tr>
+            <tr><th>Marque</th><td>${escapeHtml(p.brand || "-")}</td></tr>
+            <tr><th>Machine</th><td>${escapeHtml(p.machine || "-")}</td></tr>
+            <tr><th>Emplacement</th><td>${escapeHtml(p.location || "-")}</td></tr>
+            <tr><th>Fournisseur</th><td>${escapeHtml(p.supplier || "-")}</td></tr>
+            <tr><th>Prix</th><td>${escapeHtml(p.price || "-")}</td></tr>
+            <tr><th>Notes</th><td>${escapeHtml(p.notes || "-").replace(/\n/g,"<br>")}</td></tr>
+          </table>
+        </div>
+
+        <div class="btnrow">
+          <button class="ok" onclick="openMove('${p.id}','entree')">➕ Entrée</button>
+          <button class="warn" onclick="openMove('${p.id}','sortie')">➖ Sortie</button>
+          <button onclick="editPart('${p.id}')">Modifier</button>
+          <button class="danger" onclick="deletePart('${p.id}')">Supprimer</button>
+        </div>
+
+        <h3>Derniers mouvements</h3>
+        <div class="list">${moves.length ? moves.map(moveCard).join("") : `<div class="empty">Aucun mouvement pour cette pièce.</div>`}</div>
+      `;
+      go("detail");
+    }
+
+    function newPart(prefill = {}){
+      if(prefill && (prefill.barcode || prefill.reference)){
+        const existingFromPrefill = findDuplicatePartForForm({
+          barcode: prefill.barcode || "",
+          reference: prefill.reference || ""
+        }, "");
+        if(existingFromPrefill){
+          toast("Pièce déjà existante");
+          showDetail(existingFromPrefill.id);
+          return;
+        }
+      }
+
+      currentPartId = null;
+      tempPhotoData = "";
+      $("formTitle").textContent = "Ajouter une pièce";
+      clearForm(false);
+      $("partId").value = "";
+      $("fBarcode").value = prefill.barcode || "";
+      $("fReference").value = prefill.reference || "";
+      $("fDesignation").value = upperDesignation(prefill.designation || "");
+      $("fType").value = prefill.typePiece || "";
+      $("fBrand").value = prefill.brand || "";
+      $("fMachine").value = prefill.machine || "";
+      $("fLocation").value = prefill.location || "";
+      $("fQty").value = prefill.qty ?? 0;
+      $("fMinQty").value = prefill.minQty ?? 0;
+      $("fSupplier").value = prefill.supplier || "";
+      $("fPrice").value = prefill.price || "";
+      $("fNotes").value = prefill.notes || "";
+      go("form");
+    }
+
+    function editPart(id){
+      const p = getPart(id);
+      if(!p) return;
+      currentPartId = id;
+      tempPhotoData = p.photoData || "";
+      $("formTitle").textContent = "Modifier la pièce";
+      $("partId").value = p.id;
+      $("fBarcode").value = p.barcode || "";
+      $("fReference").value = p.reference || "";
+      $("fDesignation").value = upperDesignation(p.designation || "");
+      $("fType").value = p.typePiece || "";
+      $("fBrand").value = p.brand || "";
+      $("fMachine").value = p.machine || "";
+      $("fLocation").value = p.location || "";
+      $("fQty").value = Number(p.qty || 0);
+      $("fMinQty").value = Number(p.minQty || 0);
+      $("fSupplier").value = p.supplier || "";
+      $("fPrice").value = p.price || "";
+      $("fNotes").value = p.notes || "";
+      if(tempPhotoData){
+        $("photoPreview").src = tempPhotoData;
+        $("photoPreview").classList.remove("hidden");
+      }else{
+        $("photoPreview").classList.add("hidden");
+      }
+      go("form");
+    }
+
+    function clearForm(clearId = true){
+      if(clearId) $("partId").value = "";
+      ["fBarcode","fReference","fDesignation","fType","fBrand","fMachine","fLocation","fSupplier","fPrice","fNotes"].forEach(id=>$(id).value = "");
+      $("fQty").value = 0;
+      $("fMinQty").value = 0;
+      $("fPhoto").value = "";
+      tempPhotoData = "";
+      $("photoPreview").src = "";
+      $("photoPreview").classList.add("hidden");
+    }
+
+    async function loadPartPhoto(event){
+      const file = event.target.files && event.target.files[0];
+      if(!file) return;
+      tempPhotoData = await resizeImage(file, 900, 0.74);
+      $("photoPreview").src = tempPhotoData;
+      $("photoPreview").classList.remove("hidden");
+    }
+
+    function findDuplicatePartForForm(data, currentId){
+      const barcode = lower(data.barcode);
+      const reference = lower(data.reference);
+
+      return db.parts.find(p => {
+        if(p.id === currentId) return false;
+
+        const pBarcode = lower(p.barcode);
+        const pReference = lower(p.reference);
+
+        if(barcode && pBarcode && barcode === pBarcode) return true;
+        if(reference && pReference && reference === pReference) return true;
+
+        return false;
+      });
+    }
+
+    async function checkDuplicateInForm(field){
+      const currentId = $("partId").value || "";
+      const data = {
+        barcode: normalize($("fBarcode").value),
+        reference: normalize($("fReference").value)
+      };
+
+      if(field === "barcode" && !data.barcode) return;
+      if(field === "reference" && !data.reference) return;
+
+      const duplicate = findDuplicatePartForForm(data, currentId);
+      if(!duplicate) return;
+
+      const champ = field === "barcode" ? "code-barres" : "référence";
+      const ouvrir = await appConfirm(
+        "Ce " + champ + " existe déjà dans l'inventaire.\\n\\n" +
+        "Pièce existante : " + (duplicate.designation || "Pièce sans nom") + "\\n\\n" +
+        "Ouvrir la fiche existante maintenant ?",
+        {title:"Pièce déjà enregistrée", confirmText:"Ouvrir la fiche"}
+      );
+
+      if(ouvrir){
+        showDetail(duplicate.id);
+      }else{
+        if(field === "barcode") $("fBarcode").value = "";
+        if(field === "reference") $("fReference").value = "";
+      }
+    }
+
+    function savePart(ev){
+      ev.preventDefault();
+      const id = $("partId").value || uid();
+      const existing = getPart(id);
+      const oldQty = existing ? Number(existing.qty || 0) : 0;
+      const qty = Math.max(0, Number($("fQty").value || 0));
+      const p = {
+        id,
+        barcode: normalize($("fBarcode").value),
+        reference: normalize($("fReference").value),
+        designation: upperDesignation($("fDesignation").value),
+        typePiece: normalize($("fType").value),
+        brand: normalize($("fBrand").value),
+        machine: normalize($("fMachine").value),
+        location: normalize($("fLocation").value),
+        qty,
+        minQty: Math.max(0, Number($("fMinQty").value || 0)),
+        supplier: normalize($("fSupplier").value),
+        price: normalize($("fPrice").value),
+        notes: normalize($("fNotes").value),
+        photoData: tempPhotoData || (existing && existing.photoData) || "",
+        createdAt: existing ? existing.createdAt : nowISO(),
+        updatedAt: nowISO()
+      };
+
+      const duplicate = findDuplicatePartForForm(p, id);
+      if(duplicate){
+        appAlert(
+          "Cette pièce existe déjà dans l'inventaire.\n\n" +
+          "L'application va ouvrir la fiche existante au lieu de créer un doublon."
+        );
+        showDetail(duplicate.id);
+        return;
+      }
+
+      if(existing){
+        Object.assign(existing, p);
+        if(oldQty !== qty){
+          db.moves.push({
+            id: uid(), partId: id, date: nowISO(), type: qty >= oldQty ? "entree" : "sortie",
+            qty: Math.abs(qty - oldQty), note: "Correction manuelle de stock",
+            previousQty: oldQty, newQty: qty, designationSnapshot: p.designation
+          });
+        }
+        toast("Pièce modifiée");
+      }else{
+        db.parts.push(p);
+        if(qty > 0){
+          db.moves.push({
+            id: uid(), partId: id, date: nowISO(), type: "entree",
+            qty, note: "Création fiche pièce", previousQty: 0, newQty: qty, designationSnapshot: p.designation
+          });
+        }
+        toast("Pièce ajoutée");
+      }
+      save();
+      showDetail(id);
+    }
+
+    async function deletePart(id){
+      const p = getPart(id);
+      if(!p) return;
+      if(!await appConfirm(
+        "Supprimer cette pièce de l'inventaire ? L'historique restera visible mais la fiche sera supprimée.",
+        {title:"Supprimer la pièce", type:"danger", confirmText:"Supprimer"}
+      )) return;
+      db.parts = db.parts.filter(x=>x.id !== id);
+      save();
+      toast("Pièce supprimée");
+      go("inventory");
+    }
+
+    function openMove(id, type){
+      const p = getPart(id);
+      if(!p) return;
+      currentPartId = id;
+      currentMoveType = type;
+      $("moveTitle").textContent = type === "entree" ? "Entrée stock" : "Sortie stock";
+      $("moveQtyLabel").textContent = type === "entree" ? "Quantité entrée" : "Quantité sortie";
+      $("moveQty").value = 1;
+      $("moveNote").value = "";
+      $("moveValidateBtn").className = type === "entree" ? "ok" : "warn";
+      $("moveValidateBtn").textContent = type === "entree" ? "Valider l'entrée" : "Valider la sortie";
+      $("movePartSummary").innerHTML = `
+        <strong>${escapeHtml(p.designation)}</strong><br>
+        Réf : ${escapeHtml(p.reference || "-")} · Emplacement : ${escapeHtml(p.location || "-")}<br>
+        Stock actuel : <strong>${Number(p.qty || 0)}</strong>
+      `;
+      go("move");
+    }
+
+    async function validateMove(){
+      const p = getPart(currentPartId);
+      if(!p) return;
+      const qty = Math.max(1, Number($("moveQty").value || 1));
+      const prev = Number(p.qty || 0);
+      let next = prev;
+      if(currentMoveType === "entree"){
+        next = prev + qty;
+      }else{
+        if(qty > prev && !await appConfirm(
+          "La sortie est supérieure au stock actuel. Le stock passera à 0. Continuer ?",
+          {title:"Stock insuffisant", type:"warn", confirmText:"Continuer"}
+        )) return;
+        next = Math.max(0, prev - qty);
+      }
+      p.qty = next;
+      p.updatedAt = nowISO();
+      db.moves.push({
+        id: uid(),
+        partId: p.id,
+        date: nowISO(),
+        type: currentMoveType,
+        qty,
+        note: normalize($("moveNote").value),
+        previousQty: prev,
+        newQty: next,
+        designationSnapshot: p.designation
+      });
+      save();
+      toast(currentMoveType === "entree" ? "Entrée enregistrée" : "Sortie enregistrée");
+      showDetail(p.id);
+    }
+
+    async function startScan(action){
+      currentAction = action || "lookup";
+      $("manualCode").value = "";
+      $("scanTitle").textContent = action === "entree" ? "Scanner pour entrée stock" : action === "sortie" ? "Scanner pour sortie stock" : "Scanner une pièce";
+      go("scan");
+      await startScanner();
+    }
+
+    async function startScanner(){
+      const support = $("scanSupport");
+      support.className = "notice";
+      if(!("BarcodeDetector" in window)){
+        support.className = "notice warn";
+        support.innerHTML = "Le scan code-barres natif n'est pas disponible sur ce navigateur. Tu peux saisir le code manuellement ou utiliser l'OCR étiquette.";
+        return;
+      }
+      if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+        support.className = "notice warn";
+        support.innerHTML = "Caméra non disponible. Utilise la saisie manuelle ou l'OCR.";
+        return;
+      }
+      try{
+        support.innerHTML = "Autorise la caméra, puis vise le code-barres dans le cadre.";
+        videoStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal:"environment" }, width:{ideal:1280}, height:{ideal:720} },
+          audio: false
+        });
+        const video = $("video");
+        video.srcObject = videoStream;
+        await video.play();
+
+        const formats = await BarcodeDetector.getSupportedFormats();
+
+        // Scanner uniquement les codes-barres, pas les QR codes.
+        const wanted = ["ean_13","ean_8","code_128","code_39","code_93","upc_a","upc_e","itf","codabar"];
+        const activeFormats = wanted.filter(f=>formats.includes(f));
+        const detector = new BarcodeDetector({ formats: activeFormats });
+
+        scanLoopActive = true;
+        scannedRecently = false;
+        scanCandidateCode = "";
+        scanCandidateFormat = "";
+        scanCandidateCount = 0;
+
+        if(!activeFormats.length){
+          support.className = "notice warn";
+          support.innerHTML = "Ton navigateur ne semble pas proposer de format code-barres compatible. Utilise la saisie manuelle ou l'OCR.";
+          return;
+        }
+
+        const tick = async () => {
+          if(!scanLoopActive) return;
+          try{
+            const codes = await detector.detect(video);
+
+            if(codes && codes.length && !scannedRecently){
+              const raw = normalize(codes[0].rawValue || "");
+              const format = codes[0].format || "code-barres";
+
+              if(raw){
+                if(raw === scanCandidateCode && format === scanCandidateFormat){
+                  scanCandidateCount++;
+                }else{
+                  scanCandidateCode = raw;
+                  scanCandidateFormat = format;
+                  scanCandidateCount = 1;
+                }
+
+                support.className = "notice";
+                support.innerHTML =
+                  "Lecture en cours : <strong>" + escapeHtml(raw) + "</strong><br>" +
+                  "Format : " + escapeHtml(format) + " · confirmation " +
+                  Math.min(scanCandidateCount, SCAN_REQUIRED_READS) + "/" + SCAN_REQUIRED_READS;
+
+                // Validation seulement si le même code est lu plusieurs fois de suite.
+                // Ça évite les lectures parasites où l'appli sort des codes différents.
+                if(scanCandidateCount >= SCAN_REQUIRED_READS){
+                  scannedRecently = true;
+                  if(navigator.vibrate) navigator.vibrate([60,40,60]);
+                  handleScannedCode(raw);
+                  setTimeout(()=> scannedRecently = false, 1500);
+                  return;
+                }
+              }
+            }
+          }catch(e){ console.warn(e); }
+          requestAnimationFrame(tick);
+        };
+        tick();
+      }catch(e){
+        console.error(e);
+        support.className = "notice danger";
+        support.innerHTML = "Impossible d'ouvrir la caméra. Vérifie l'autorisation caméra et ouvre l'appli depuis une page HTTPS si besoin.";
+      }
+    }
+
+    function stopScanner(){
+      scanLoopActive = false;
+      scanCandidateCode = "";
+      scanCandidateFormat = "";
+      scanCandidateCount = 0;
+      if(videoStream){
+        videoStream.getTracks().forEach(t=>t.stop());
+        videoStream = null;
+      }
+      $("video").srcObject = null;
+    }
+
+    function manualScan(){
+      const code = normalize($("manualCode").value);
+      if(!code){ toast("Saisis un code ou une référence"); return; }
+      handleScannedCode(code);
+    }
+
+    function findByCode(code){
+      const c = lower(code);
+      return db.parts.find(p => lower(p.barcode) === c || lower(p.reference) === c);
+    }
+
+    function handleScannedCode(code){
+      code = normalize(code);
+      if(!code) return;
+      stopScanner();
+      const p = findByCode(code);
+      if(p){
+        toast("Pièce trouvée");
+        if(currentAction === "entree" || currentAction === "sortie"){
+          openMove(p.id, currentAction);
+        }else{
+          showDetail(p.id);
+        }
+      }else{
+        toast("Pièce inconnue : création fiche");
+        newPart({ barcode: code, reference: code, notes: "Créée depuis scan code-barres." });
+      }
+    }
+
+    function previewOcrImage(event){
+      const file = event.target.files && event.target.files[0];
+      if(!file) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        ocrImageData = reader.result;
+        ocrSelection = null;
+
+        $("ocrPreview").src = ocrImageData;
+        $("ocrPreview").classList.remove("hidden");
+
+        setupOcrCanvas(ocrImageData);
+
+        $("ocrText").value = "";
+        $("ocrCandidatesBox").classList.add("hidden");
+        $("ocrCandidatesBox").innerHTML = "";
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function setupOcrCanvas(imageData){
+      const img = new Image();
+
+      img.onload = () => {
+        ocrCanvasImage = img;
+
+        const canvas = $("ocrCanvas");
+        const maxWidth = 1400;
+        const ratio = Math.min(1, maxWidth / img.naturalWidth);
+
+        canvas.width = Math.round(img.naturalWidth * ratio);
+        canvas.height = Math.round(img.naturalHeight * ratio);
+
+        $("ocrCanvasBox").classList.remove("hidden");
+        drawOcrCanvas();
+
+        canvas.onpointerdown = startOcrSelection;
+        canvas.onpointermove = moveOcrSelection;
+        canvas.onpointerup = endOcrSelection;
+        canvas.onpointercancel = endOcrSelection;
+        canvas.onpointerleave = endOcrSelection;
+      };
+
+      img.onerror = () => {
+        toast("Image OCR impossible à charger");
+      };
+
+      img.src = imageData;
+    }
+
+    function getOcrCanvasPoint(event){
+      const canvas = $("ocrCanvas");
+      const rect = canvas.getBoundingClientRect();
+
+      return {
+        x: Math.max(0, Math.min(canvas.width, (event.clientX - rect.left) * canvas.width / rect.width)),
+        y: Math.max(0, Math.min(canvas.height, (event.clientY - rect.top) * canvas.height / rect.height))
+      };
+    }
+
+    function normalizedSelection(sel){
+      const x = Math.min(sel.x1, sel.x2);
+      const y = Math.min(sel.y1, sel.y2);
+      const w = Math.abs(sel.x2 - sel.x1);
+      const h = Math.abs(sel.y2 - sel.y1);
+      return { x, y, w, h };
+    }
+
+    function drawOcrCanvas(){
+      const canvas = $("ocrCanvas");
+      const ctx = canvas.getContext("2d");
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if(ocrCanvasImage){
+        ctx.drawImage(ocrCanvasImage, 0, 0, canvas.width, canvas.height);
+      }
+
+      if(ocrSelection){
+        const s = normalizedSelection(ocrSelection);
+
+        ctx.save();
+
+        ctx.fillStyle = "rgba(0,0,0,.42)";
+        ctx.fillRect(0, 0, canvas.width, s.y);
+        ctx.fillRect(0, s.y + s.h, canvas.width, canvas.height - (s.y + s.h));
+        ctx.fillRect(0, s.y, s.x, s.h);
+        ctx.fillRect(s.x + s.w, s.y, canvas.width - (s.x + s.w), s.h);
+
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = Math.max(3, Math.round(canvas.width / 260));
+        ctx.strokeRect(s.x, s.y, s.w, s.h);
+
+        ctx.fillStyle = "rgba(56,189,248,.95)";
+        const handle = Math.max(10, Math.round(canvas.width / 90));
+        [[s.x,s.y],[s.x+s.w,s.y],[s.x,s.y+s.h],[s.x+s.w,s.y+s.h]].forEach(([hx,hy])=>{
+          ctx.beginPath();
+          ctx.arc(hx, hy, handle/2, 0, Math.PI*2);
+          ctx.fill();
+        });
+
+        ctx.restore();
+      }
+    }
+
+    function startOcrSelection(event){
+      if(!ocrCanvasImage) return;
+
+      event.preventDefault();
+
+      const canvas = $("ocrCanvas");
+      if(canvas.setPointerCapture){
+        canvas.setPointerCapture(event.pointerId);
+      }
+
+      const p = getOcrCanvasPoint(event);
+      ocrIsSelecting = true;
+      ocrSelectionStart = p;
+      ocrSelection = { x1:p.x, y1:p.y, x2:p.x, y2:p.y };
+      drawOcrCanvas();
+    }
+
+    function moveOcrSelection(event){
+      if(!ocrIsSelecting || !ocrSelectionStart) return;
+
+      event.preventDefault();
+
+      const p = getOcrCanvasPoint(event);
+      ocrSelection = {
+        x1: ocrSelectionStart.x,
+        y1: ocrSelectionStart.y,
+        x2: p.x,
+        y2: p.y
+      };
+      drawOcrCanvas();
+    }
+
+    function endOcrSelection(event){
+      if(!ocrIsSelecting) return;
+
+      event.preventDefault();
+
+      ocrIsSelecting = false;
+
+      if(ocrSelection){
+        const s = normalizedSelection(ocrSelection);
+
+        if(s.w < 20 || s.h < 20){
+          ocrSelection = null;
+          drawOcrCanvas();
+          toast("Sélection trop petite");
+          return;
+        }
+
+        toast("Zone sélectionnée");
+      }
+    }
+
+    function clearOcrSelection(){
+      ocrSelection = null;
+      drawOcrCanvas();
+      toast("Sélection effacée");
+    }
+
+    async function runOCR(){
+      if(!ocrImageData){
+        toast("Ajoute une photo d'étiquette ou de feuille");
+        return;
+      }
+
+      await runOCRWithImage(ocrImageData, "toute la photo");
+    }
+
+    async function runOCRSelection(){
+      if(!ocrImageData || !ocrCanvasImage){
+        toast("Ajoute une photo d'étiquette ou de feuille");
+        return;
+      }
+
+      if(!ocrSelection){
+        appAlert("Trace d'abord un rectangle sur la zone à lire.");
+        return;
+      }
+
+      const imageToRead = getSelectedOcrImage();
+
+      if(!imageToRead){
+        appAlert("La sélection est trop petite ou invalide.");
+        return;
+      }
+
+      await runOCRWithImage(imageToRead, "la sélection");
+    }
+
+    function getSelectedOcrImage(){
+      if(!ocrSelection || !ocrCanvasImage) return "";
+
+      const canvas = $("ocrCanvas");
+      const s = normalizedSelection(ocrSelection);
+
+      if(s.w < 20 || s.h < 20) return "";
+
+      const scaleX = ocrCanvasImage.naturalWidth / canvas.width;
+      const scaleY = ocrCanvasImage.naturalHeight / canvas.height;
+
+      const sx = Math.round(s.x * scaleX);
+      const sy = Math.round(s.y * scaleY);
+      const sw = Math.round(s.w * scaleX);
+      const sh = Math.round(s.h * scaleY);
+
+      const cropCanvas = document.createElement("canvas");
+      const maxCropWidth = 1600;
+      const ratio = Math.min(1, maxCropWidth / sw);
+
+      cropCanvas.width = Math.max(1, Math.round(sw * ratio));
+      cropCanvas.height = Math.max(1, Math.round(sh * ratio));
+
+      const ctx = cropCanvas.getContext("2d");
+      ctx.drawImage(
+        ocrCanvasImage,
+        sx, sy, sw, sh,
+        0, 0, cropCanvas.width, cropCanvas.height
+      );
+
+      return cropCanvas.toDataURL("image/png");
+    }
+
+    async function loadImageForBarcode(imageData){
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error("Image impossible à charger pour la lecture du code-barres"));
+        img.src = imageData;
+      });
+    }
+
+    function createBarcodeCanvas(img, rotation = 0, highContrast = false){
+      const maxDimension = 2200;
+      const baseRatio = Math.min(1, maxDimension / Math.max(img.naturalWidth, img.naturalHeight));
+      const sourceWidth = Math.max(1, Math.round(img.naturalWidth * baseRatio));
+      const sourceHeight = Math.max(1, Math.round(img.naturalHeight * baseRatio));
+      const quarterTurn = Math.abs(rotation) % 180 === 90;
+
+      const canvas = document.createElement("canvas");
+      canvas.width = quarterTurn ? sourceHeight : sourceWidth;
+      canvas.height = quarterTurn ? sourceWidth : sourceHeight;
+
+      const ctx = canvas.getContext("2d", { willReadFrequently: highContrast });
+      ctx.save();
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate(rotation * Math.PI / 180);
+      ctx.drawImage(img, -sourceWidth / 2, -sourceHeight / 2, sourceWidth, sourceHeight);
+      ctx.restore();
+
+      if(highContrast){
+        const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = image.data;
+
+        for(let i = 0; i < data.length; i += 4){
+          const gray = Math.round(data[i] * .299 + data[i + 1] * .587 + data[i + 2] * .114);
+          const contrasted = Math.max(0, Math.min(255, (gray - 128) * 1.8 + 128));
+          data[i] = contrasted;
+          data[i + 1] = contrasted;
+          data[i + 2] = contrasted;
+        }
+
+        ctx.putImageData(image, 0, 0);
+      }
+
+      return canvas;
+    }
+
+    async function detectBarcodeInPhoto(imageData, label){
+      if(!("BarcodeDetector" in window)) return null;
+
+      try{
+        const supported = await BarcodeDetector.getSupportedFormats();
+        const wanted = ["ean_13","ean_8","code_128","code_39","code_93","upc_a","upc_e","itf","codabar"];
+        const activeFormats = wanted.filter(format => supported.includes(format));
+        if(!activeFormats.length) return null;
+
+        const detector = new BarcodeDetector({ formats: activeFormats });
+        const img = await loadImageForBarcode(imageData);
+        const variants = [
+          {rotation:0, highContrast:false},
+          {rotation:90, highContrast:false},
+          {rotation:180, highContrast:false},
+          {rotation:270, highContrast:false},
+          {rotation:0, highContrast:true},
+          {rotation:90, highContrast:true}
+        ];
+        const candidates = new Map();
+
+        for(let index = 0; index < variants.length; index++){
+          $("ocrProgress").style.width = Math.round(((index + 1) / variants.length) * 25) + "%";
+          $("ocrStatus").textContent = "Recherche d'un code-barres dans " + label + "...";
+
+          const variant = variants[index];
+          const canvas = createBarcodeCanvas(img, variant.rotation, variant.highContrast);
+          const codes = await detector.detect(canvas);
+          canvas.width = 1;
+          canvas.height = 1;
+
+          for(const code of codes || []){
+            const raw = normalize(code.rawValue || "");
+            if(!raw) continue;
+
+            const format = code.format || "code-barres";
+            const key = format + "|" + raw;
+            const previous = candidates.get(key) || { raw, format, count:0 };
+            previous.count++;
+            candidates.set(key, previous);
+          }
+        }
+
+        if(!candidates.size) return null;
+
+        return [...candidates.values()].sort((a,b) => b.count - a.count)[0];
+      }catch(e){
+        console.warn("Lecture code-barres sur photo impossible", e);
+        return null;
+      }
+    }
+
+    async function tryBarcodeBeforeOCR(imageData, label){
+      $("ocrProgressBox").classList.remove("hidden");
+      $("ocrProgress").style.width = "0%";
+      $("ocrStatus").textContent = "Recherche d'un code-barres dans " + label + "...";
+
+      const barcode = await detectBarcodeInPhoto(imageData, label);
+      if(!barcode){
+        $("ocrStatus").textContent = "Aucun code-barres détecté. Lancement de la lecture OCR...";
+        return false;
+      }
+
+      $("ocrProgress").style.width = "30%";
+      $("ocrStatus").textContent = "Code-barres détecté : " + barcode.raw;
+
+      const useBarcode = await appConfirm(
+        "Un code-barres a été détecté dans " + label + ".\n\n" +
+        barcode.raw + "\nFormat : " + barcode.format + "\n\n" +
+        "Utiliser ce code ?",
+        {title:"Code-barres détecté", type:"success", confirmText:"Utiliser le code", cancelText:"Continuer avec l'OCR"}
+      );
+
+      if(!useBarcode){
+        $("ocrStatus").textContent = "Code refusé. Lancement de la lecture OCR...";
+        return false;
+      }
+
+      $("ocrText").value = barcode.raw;
+      $("ocrCandidatesBox").classList.add("hidden");
+      $("ocrCandidatesBox").innerHTML = "";
+      $("ocrProgress").style.width = "100%";
+      $("ocrStatus").textContent = "Code-barres validé.";
+      handleScannedCode(barcode.raw);
+      return true;
+    }
+
+    async function runOCRWithImage(imageData, label){
+      if(await tryBarcodeBeforeOCR(imageData, label)) return;
+
+      if(!window.Tesseract){
+        appAlert("Le module OCR n'est pas chargé. Il faut une connexion internet au premier lancement pour charger Tesseract.js.");
+        return;
+      }
+
+      $("ocrProgressBox").classList.remove("hidden");
+      $("ocrProgress").style.width = "0%";
+      $("ocrStatus").textContent = "Analyse de " + label + " en cours...";
+
+      try{
+        const result = await Tesseract.recognize(imageData, "fra+eng", {
+          logger: m => {
+            if(m.status){
+              $("ocrStatus").textContent =
+                "Analyse de " + label + " : " +
+                m.status +
+                (m.progress ? " " + Math.round(m.progress*100) + "%" : "");
+            }
+
+            if(m.progress){
+              $("ocrProgress").style.width = Math.round(m.progress*100) + "%";
+            }
+          }
+        });
+
+        const text = (result && result.data && result.data.text) ? result.data.text.trim() : "";
+
+        $("ocrText").value = text;
+        $("ocrProgress").style.width = "100%";
+        $("ocrStatus").textContent = "Lecture terminée. Vérifie le texte, puis utilise une référence détectée ou crée la fiche.";
+
+        analyzeOcrText(false);
+        toast("Texte lu");
+      }catch(e){
+        console.error(e);
+        $("ocrStatus").textContent = "Erreur OCR";
+        appAlert("La lecture OCR a échoué. Tu peux quand même saisir les infos manuellement.");
+      }
+    }
+
+    async function smartAnalyzeReferences(){
+      const text = normalize($("ocrText").value);
+
+      // Si du texte OCR est déjà présent, on extrait simplement les références possibles.
+      if(text){
+        analyzeOcrText(true);
+        return;
+      }
+
+      // Si une photo est chargée et qu'une zone est sélectionnée, on lit uniquement cette zone.
+      if(ocrImageData && ocrSelection){
+        await runOCRSelection();
+        return;
+      }
+
+      // Si une photo est chargée mais sans sélection, on lit toute la photo.
+      if(ocrImageData){
+        await runOCR();
+        return;
+      }
+
+      appAlert(
+        "Ajoute d'abord une photo d'étiquette ou de feuille de commande.\n\n" +
+        "Ensuite tu peux :\n" +
+        "- analyser toute la photo,\n" +
+        "- sélectionner une zone,\n" +
+        "- ou cliquer sur Analyser les références."
+      );
+    }
+
+    function analyzeOcrText(showToast = true){
+      const text = normalize($("ocrText").value);
+      const box = $("ocrCandidatesBox");
+
+      if(!text){
+        box.classList.remove("hidden");
+        box.innerHTML = `
+          <div class="notice warn">
+            Aucun texte OCR à analyser pour l'instant.<br>
+            Prends une photo, puis clique sur <strong>Analyser toute la photo</strong> ou sélectionne une zone avant de cliquer sur <strong>Analyser la sélection</strong>.
+          </div>
+        `;
+        return;
+      }
+
+      const candidates = extractReferenceCandidates(text);
+      renderOcrCandidates(candidates, text);
+
+      if(showToast){
+        toast(candidates.length ? candidates.length + " référence(s) possible(s) détectée(s)" : "Aucune référence évidente détectée");
+      }
+    }
+
+    function extractReferenceCandidates(text){
+      const candidates = [];
+      const add = (value, reason) => {
+        value = normalize(value)
+          .replace(/[;,]/g, "")
+          .replace(/^[#:\-]+|[#:\-]+$/g, "");
+
+        if(!value) return;
+        if(value.length < 4) return;
+
+        // Évite de proposer uniquement des années ou des nombres trop courts.
+        if(/^(19|20)\d{2}$/.test(value)) return;
+
+        const key = lower(value);
+        if(candidates.some(c => lower(c.value) === key)) return;
+        candidates.push({ value, reason });
+      };
+
+      const cleanText = text
+        .replace(/[|]/g, " ")
+        .replace(/[“”]/g, '"')
+        .replace(/[’]/g, "'");
+
+      // Références précédées par un libellé : REF, Réf, Article, Code, N°, Série...
+      const explicitRe = /\b(?:ref|réf|reference|référence|article|art|code|n°|no|num|numéro|numero|serie|série|serial|sn|s\/n)\s*[:#\-]?\s*([A-Z0-9][A-Z0-9\-\/._]{3,})\b/gi;
+      let m;
+      while((m = explicitRe.exec(cleanText)) !== null){
+        add(m[1], "Référence détectée après libellé");
+      }
+
+      // Séries longues de chiffres : souvent référence, EAN, code article.
+      const digitRe = /\b\d{5,18}\b/g;
+      while((m = digitRe.exec(cleanText)) !== null){
+        add(m[0], "Série de chiffres");
+      }
+
+      // Références alphanumériques avec tiret, slash ou point : ex AB-1234, 985421/A, KIT.456.
+      const alphaNumRe = /\b[A-Z]{1,6}[\-\/._]?\d{3,}[A-Z0-9\-\/._]*\b/gi;
+      while((m = alphaNumRe.exec(cleanText)) !== null){
+        add(m[0], "Référence alphanumérique");
+      }
+
+      // Mots techniques en majuscules longs, parfois références fabricant.
+      const upperRefRe = /\b[A-Z0-9]{6,}\b/g;
+      while((m = upperRefRe.exec(cleanText.toUpperCase())) !== null){
+        add(m[0], "Code possible");
+      }
+
+      return candidates.slice(0, 12);
+    }
+
+    function findPartByCandidate(value){
+      const v = lower(value);
+      return db.parts.find(p => {
+        if(lower(p.barcode) === v) return true;
+        if(lower(p.reference) === v) return true;
+
+        // Recherche plus souple si la référence OCR est contenue dans les notes ou la désignation.
+        const haystack = lower([p.barcode, p.reference, p.designation, p.notes].join(" "));
+        return v.length >= 5 && haystack.includes(v);
+      });
+    }
+
+    function renderOcrCandidates(candidates, text){
+      const box = $("ocrCandidatesBox");
+      box.classList.remove("hidden");
+
+      if(!candidates.length){
+        box.innerHTML = `
+          <div class="notice warn">
+            Aucune référence évidente détectée automatiquement. Tu peux corriger le texte, saisir la référence à la main, ou créer une fiche avec tout le texte OCR.
+          </div>
+        `;
+        return;
+      }
+
+      const rows = candidates.map(c => {
+        const existing = findPartByCandidate(c.value);
+        if(existing){
+          return `
+            <div class="item">
+              <div class="item-head">
+                <div>
+                  <div class="item-title">${escapeHtml(c.value)}</div>
+                  <div class="item-meta">
+                    ${escapeHtml(c.reason)}<br>
+                    Trouvé dans l'inventaire : <strong>${escapeHtml(existing.designation || "Pièce sans nom")}</strong><br>
+                    Stock actuel : ${Number(existing.qty || 0)}
+                  </div>
+                </div>
+                <span class="pill ok">Déjà connu</span>
+              </div>
+              <div class="btnrow">
+                <button onclick="showDetail('${existing.id}')">Ouvrir fiche</button>
+                <button class="ok" onclick="openMove('${existing.id}','entree')">+ Entrée</button>
+                <button class="warn" onclick="openMove('${existing.id}','sortie')">- Sortie</button>
+              </div>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="item">
+            <div class="item-head">
+              <div>
+                <div class="item-title">${escapeHtml(c.value)}</div>
+                <div class="item-meta">${escapeHtml(c.reason)}<br>Pas encore trouvé dans l'inventaire.</div>
+              </div>
+              <span class="pill warn">Nouveau ?</span>
+            </div>
+            <div class="btnrow">
+              <button onclick="newPartFromCandidate('${escapeJs(c.value)}')">Créer fiche avec cette référence</button>
+              <button class="secondary" onclick="searchInventoryFromCandidate('${escapeJs(c.value)}')">Chercher dans l'inventaire</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      box.innerHTML = `
+        <div class="card" style="box-shadow:none;margin-top:12px;background:#0b1220">
+          <div class="section-title">
+            <h2>Références possibles détectées</h2>
+            <span class="pill">${candidates.length}</span>
+          </div>
+          <div class="list">${rows}</div>
+        </div>
+      `;
+    }
+
+    function newPartFromCandidate(value){
+      const text = normalize($("ocrText").value);
+      const guess = guessFromText(text);
+      newPart({
+        reference: value,
+        designation: guess.designation || "",
+        brand: guess.brand || "",
+        notes: text ? "Texte lu par OCR :\n" + text : ""
+      });
+    }
+
+    function searchInventoryFromCandidate(value){
+      $("searchInput").value = value;
+      go("inventory");
+      renderInventory();
+    }
+
+    function escapeJs(s){
+      return (s ?? "").toString()
+        .replace(/\\/g, "\\\\")
+        .replace(/'/g, "\\'")
+        .replace(/"/g, "&quot;")
+        .replace(/\n/g, " ");
+    }
+
+    function newPartFromOCR(){
+      const text = normalize($("ocrText").value);
+      const guess = guessFromText(text);
+      const candidates = extractReferenceCandidates(text);
+      const bestCandidate = candidates.length ? candidates[0].value : guess.reference;
+
+      newPart({
+        reference: bestCandidate || "",
+        designation: guess.designation,
+        brand: guess.brand,
+        notes: text ? "Texte lu par OCR :\n" + text : ""
+      });
+    }
+
+    function guessFromText(text){
+      const lines = text.split(/\n+/).map(x=>x.trim()).filter(Boolean);
+      const joined = lines.join(" ");
+      let ref = "";
+      const refMatch = joined.match(/(?:ref|réf|reference|référence|art|article|code|n°|no|numéro|numero|serie|série|serial|sn|s\/n)\s*[:#\-]?\s*([A-Z0-9][A-Z0-9\-\/\.]{3,})/i);
+      if(refMatch) ref = refMatch[1];
+      if(!ref){
+        const any = joined.match(/\b[A-Z0-9]{5,}[-\/]?[A-Z0-9]*\b/i);
+        if(any) ref = any[0];
+      }
+      const knownBrands = ["CORCHI","CORGHI","WERTHER","RAVAGLIOLI","HPA","HUNTER","MONDOLFO","CEMB","ROTARY","OMCN","BEISSBARTH","BUTLER","SICE"];
+      const upper = joined.toUpperCase();
+      const brand = knownBrands.find(b=>upper.includes(b)) || "";
+      let designation = lines.find(l => !ref || !l.includes(ref)) || "";
+      designation = designation.replace(/(?:ref|réf|reference|référence|art|article|code)\s*[:\-]?\s*/ig,"").trim();
+      if(designation.length > 60) designation = designation.slice(0,60);
+      return { reference: ref, designation, brand };
+    }
+
+    function cloudBaseUrl(){
+      return DEFAULT_CLOUD_SERVICE_URL.replace(/\/+$/, "");
+    }
+
+    function cloudConfigured(){
+      return Boolean(cloudBaseUrl() && db.settings.technicianDepot && cloudToken);
+    }
+
+    function setCloudStatus(message, type = "warn"){
+      cloudStatusMessage = message || "";
+      const notice = $("cloudAccountNotice");
+      if(notice){
+        notice.className = "notice " + (type || "");
+        notice.textContent = message;
+      }
+      renderCloudSummary();
+    }
+
+    function renderCloudSummary(){
+      const pill = $("cloudStatusPill");
+      const summary = $("cloudIdentitySummary");
+      if(!pill || !summary) return;
+
+      if(cloudSyncRunning){
+        pill.className = "pill warn";
+        pill.innerHTML = '<span class="sync-spin">↻</span> Synchronisation';
+      }else if(cloudConfigured()){
+        pill.className = "pill ok";
+        pill.textContent = navigator.onLine ? "Cloud connecté" : "Hors connexion";
+      }else{
+        pill.className = "pill warn";
+        pill.textContent = "Non configuré";
+      }
+
+      if(db.settings.technicianDepot){
+        const identity = [db.settings.technicianName, "dépôt " + db.settings.technicianDepot].filter(Boolean).join(" · ");
+        const last = db.settings.lastCloudSync ? " · dernière synchro " + fmtDate(db.settings.lastCloudSync) : "";
+        const pinState = db.settings.mustChangePin ? " · PIN temporaire à modifier" : "";
+        summary.textContent = identity + last + pinState + (cloudStatusMessage ? " · " + cloudStatusMessage : "");
+      }else{
+        summary.textContent = "Renseigne ton numéro de dépôt technicien pour activer la sauvegarde en ligne.";
+      }
+    }
+
+    function renderCloudPage(){
+      $("cloudTechnicianName").value = db.settings.technicianName || "";
+      $("cloudDepotNumber").value = db.settings.technicianDepot || "";
+      $("cloudPin").value = "";
+      if($("deleteCloudDepot")) $("deleteCloudDepot").value = db.settings.technicianDepot || "";
+      if($("changePinNotice")) $("changePinNotice").textContent = db.settings.mustChangePin ? "Tu utilises un PIN temporaire : choisis maintenant ton PIN personnel." : "";
+
+      const connected = cloudConfigured();
+      const notice = $("cloudAccountNotice");
+      if(connected && db.settings.mustChangePin){
+        notice.className = "notice warn";
+        notice.textContent = "Connexion effectuée avec un PIN temporaire. Modifie-le avant de synchroniser le stock.";
+      }else if(connected){
+        notice.className = "notice";
+        notice.textContent = "Téléphone connecté au stock du dépôt " + db.settings.technicianDepot + ".";
+      }else{
+        notice.className = "notice warn";
+        notice.textContent = "La sauvegarde en ligne n'est pas encore connectée sur ce téléphone. Le stock local continue de fonctionner normalement.";
+      }
+
+      $("cloudSyncDetails").textContent = [
+        db.settings.lastCloudSync ? "Dernière synchronisation : " + fmtDate(db.settings.lastCloudSync) : "Aucune synchronisation effectuée.",
+        "Pièces locales : " + db.parts.length,
+        "Photos : conservées uniquement sur ce téléphone et dans l'export JSON."
+      ].join(" · ");
+      renderCloudSummary();
+    }
+
+    function renderColleagueSearchPage(){
+      if(!cloudConfigured()){
+        $("colleagueSearchStatus").textContent = "Connecte d'abord ton compte technicien dans l'écran Mon compte cloud.";
+      }else{
+        $("colleagueSearchStatus").textContent = "Connecté comme " + (db.settings.technicianName || "technicien") + " · dépôt " + db.settings.technicianDepot;
+      }
+    }
+
+    async function cloudFetch(path, options = {}, requireAuth = true){
+      const base = cloudBaseUrl();
+      if(!base) throw new Error("Adresse du service en ligne non configurée dans l'application");
+      const headers = new Headers(options.headers || {});
+      if(options.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+      if(requireAuth){
+        if(!cloudToken) throw new Error("Compte technicien non connecté");
+        headers.set("Authorization", "Bearer " + cloudToken);
+      }
+      const controller = new AbortController();
+      const timeout = setTimeout(()=>controller.abort(), 20000);
+      try{
+        const response = await fetch(base + path, {...options, headers, signal:controller.signal});
+        const raw = await response.text();
+        let data = {};
+        try{ data = raw ? JSON.parse(raw) : {}; }catch{ data = {message:raw}; }
+        if(!response.ok){
+          const errorMessage = friendlyServiceMessage(data.error || data.message || ("Erreur du service en ligne " + response.status));
+          if(requireAuth && (
+            response.status === 401 ||
+            (response.status === 403 && lower(errorMessage).includes("compte cloud desactive"))
+          )){
+            cloudToken = "";
+            localStorage.removeItem(CLOUD_TOKEN_KEY);
+          }
+          throw new Error(errorMessage);
+        }
+        return data;
+      }catch(e){
+        if(e.name === "AbortError") throw new Error("Le service en ligne ne répond pas");
+        throw e;
+      }finally{
+        clearTimeout(timeout);
+      }
+    }
+
+    async function testCloudConnection(){
+      try{
+        const data = await cloudFetch("/api/health", {method:"GET"}, false);
+        setCloudStatus("Service en ligne accessible", "");
+        toast("Connexion au cloud réussie");
+      }catch(e){
+        setCloudStatus(e.message, "danger");
+        appAlert("Test du service en ligne impossible : " + e.message);
+      }
+    }
+
+    async function cloudConnect(){
+      const name = normalize($("cloudTechnicianName").value);
+      const depotNumber = normalize($("cloudDepotNumber").value).toUpperCase();
+      const pin = normalize($("cloudPin").value);
+      const serviceUrl = cloudBaseUrl();
+
+      if(!name){ appAlert("Renseigne le nom du technicien."); return; }
+      if(!depotNumber){ appAlert("Renseigne le numéro de dépôt technicien."); return; }
+      if(!/^\d{4,12}$/.test(pin)){ appAlert("Le code PIN doit contenir entre 4 et 12 chiffres."); return; }
+      if(!/^https:\/\//i.test(serviceUrl)){ appAlert("Le service en ligne est mal configuré dans l'application."); return; }
+      db.settings.technicianName = name;
+      db.settings.technicianDepot = depotNumber;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+
+      setCloudStatus("Connexion en cours…", "warn");
+      try{
+        const data = await cloudFetch("/api/auth", {
+          method:"POST",
+          body:JSON.stringify({name, depotNumber, pin})
+        }, false);
+        cloudToken = data.token;
+        localStorage.setItem(CLOUD_TOKEN_KEY, cloudToken);
+        db.settings.technicianName = data.technician?.name || name;
+        db.settings.technicianDepot = data.technician?.depotNumber || depotNumber;
+        db.settings.mustChangePin = Boolean(data.mustChangePin);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+        $("cloudPin").value = "";
+        setCloudStatus(data.created ? "Compte technicien créé" : (data.mustChangePin ? "PIN temporaire accepté : modification obligatoire" : "Connexion réussie"), data.mustChangePin ? "warn" : "");
+        toast(data.created ? "Compte cloud créé" : "Compte cloud connecté");
+
+        if(data.mustChangePin){
+          appAlert("Tu es connecté avec un PIN temporaire. Modifie-le maintenant dans la rubrique « Modifier mon code PIN ». Le stock ne sera pas synchronisé avant ce changement.");
+          renderCloudPage();
+          setTimeout(()=>$("changePinCard")?.scrollIntoView({behavior:"smooth", block:"start"}), 100);
+          return;
+        }
+
+        if(!data.hasSnapshot && db.parts.length){
+          await pushCloudSnapshot(true);
+        }else if(data.hasSnapshot && db.parts.length === 0){
+          await pullCloudSnapshot(false);
+        }else if(data.hasSnapshot && db.parts.length){
+          setCloudStatus("Stock local et stock dans le cloud présents : choisis Envoyer ou Récupérer pour la première synchronisation.", "warn");
+        }
+        renderCloudPage();
+      }catch(e){
+        setCloudStatus(e.message, "danger");
+        appAlert("Connexion au cloud impossible : " + e.message);
+      }
+    }
+
+    function forgotCloudPin(){
+      appAlert(
+        "Le code PIN ne peut pas être affiché ni récupéré.\n\n" +
+        "Communique ton numéro de dépôt à l'administrateur. Il créera un PIN temporaire sans supprimer ton stock. Ensuite, connecte-toi avec ce PIN temporaire et remplace-le dans « Modifier mon code PIN »."
+      );
+    }
+
+    async function changeCloudPin(){
+      if(!cloudConfigured()){
+        appAlert("Connecte d'abord ton compte technicien.");
+        return;
+      }
+      const currentPin = normalize($("currentCloudPin").value);
+      const newPin = normalize($("newCloudPin").value);
+      const confirmPin = normalize($("confirmCloudPin").value);
+      if(!/^\d{4,12}$/.test(currentPin) || !/^\d{4,12}$/.test(newPin)){
+        appAlert("Les PIN doivent contenir entre 4 et 12 chiffres.");
+        return;
+      }
+      if(newPin !== confirmPin){ appAlert("La confirmation du nouveau PIN ne correspond pas."); return; }
+      if(currentPin === newPin){ appAlert("Choisis un nouveau PIN différent."); return; }
+
+      $("changePinNotice").textContent = "Modification en cours…";
+      try{
+        const data = await cloudFetch("/api/account/change-pin", {
+          method:"POST",
+          body:JSON.stringify({currentPin, newPin})
+        });
+        cloudToken = data.token;
+        localStorage.setItem(CLOUD_TOKEN_KEY, cloudToken);
+        db.settings.mustChangePin = false;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+        ["currentCloudPin","newCloudPin","confirmCloudPin"].forEach(id=>$(id).value = "");
+        $("changePinNotice").textContent = "PIN modifié avec succès.";
+        setCloudStatus("PIN personnel modifié", "");
+        toast("Nouveau PIN enregistré");
+        renderCloudPage();
+        await autoCloudSyncOnStart();
+      }catch(e){
+        $("changePinNotice").textContent = "Échec : " + e.message;
+        appAlert("Modification du PIN impossible : " + e.message);
+      }
+    }
+
+    async function deactivateCloudAccount(){
+      if(!cloudConfigured()){
+        appAlert("Connecte d'abord le compte cloud que tu veux désactiver.");
+        return;
+      }
+
+      const depotNumber = normalize($("deleteCloudDepot").value).toUpperCase();
+      const pin = normalize($("deleteCloudPin").value);
+      const confirmation = normalize($("deleteCloudConfirmation").value).toUpperCase();
+
+      if(depotNumber !== normalize(db.settings.technicianDepot).toUpperCase()){
+        appAlert("Le numéro de dépôt saisi ne correspond pas au compte connecté.");
+        return;
+      }
+      if(!/^\d{4,12}$/.test(pin)){
+        appAlert("Le PIN doit contenir entre 4 et 12 chiffres.");
+        return;
+      }
+      if(confirmation !== "SUPPRIMER"){
+        appAlert("Écris exactement SUPPRIMER dans le champ de confirmation.");
+        return;
+      }
+
+      const message =
+        "Désactiver le compte cloud du dépôt " + depotNumber + " ?\n\n" +
+        "Le stock dans le cloud sera conservé pendant 30 jours et pourra être restauré par l'administrateur. " +
+        "Après ce délai, il sera supprimé définitivement.\n\n" +
+        "Le stock local de ce téléphone restera présent.";
+      if(!await appConfirm(message, {
+        title:"Désactiver le compte cloud",
+        type:"danger",
+        confirmText:"Continuer"
+      })) return;
+      if(!await appConfirm(
+        "Dernière confirmation : désactiver maintenant ce compte cloud ?",
+        {title:"Confirmation définitive", type:"danger", confirmText:"Désactiver"}
+      )) return;
+
+      $("deleteCloudNotice").textContent = "Désactivation en cours…";
+      try{
+        const data = await cloudFetch("/api/account/deactivate", {
+          method:"POST",
+          body:JSON.stringify({depotNumber, pin, confirmation:"SUPPRIMER"})
+        });
+
+        cloudToken = "";
+        localStorage.removeItem(CLOUD_TOKEN_KEY);
+        db.settings.lastCloudSync = "";
+        db.settings.mustChangePin = false;
+        db.settings.cloudAccountDisabledAt = data.disabledAt || nowISO();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+
+        $("deleteCloudPin").value = "";
+        $("deleteCloudConfirmation").value = "";
+        $("deleteCloudNotice").textContent = data.message || "Compte cloud désactivé.";
+        setCloudStatus("Compte cloud désactivé", "danger");
+
+        appAlert(
+          (data.message || "Compte cloud désactivé.") +
+          "\n\nDate prévue de suppression définitive : " +
+          (data.scheduledDeleteAt ? fmtDate(data.scheduledDeleteAt) : "dans 30 jours") +
+          ".\n\nPour annuler, contacte l'administrateur avant cette date."
+        );
+        go("home");
+      }catch(e){
+        $("deleteCloudNotice").textContent = "Échec : " + e.message;
+        appAlert("Désactivation impossible : " + e.message);
+      }
+    }
+
+    async function cloudLogout(){
+      if(!cloudToken){ toast("Ce téléphone n'est pas connecté"); return; }
+      if(!await appConfirm(
+        "Déconnecter ce téléphone du cloud ? Le stock local restera sur le téléphone.",
+        {title:"Déconnexion du cloud", confirmText:"Déconnecter"}
+      )) return;
+      cloudToken = "";
+      localStorage.removeItem(CLOUD_TOKEN_KEY);
+      db.settings.lastCloudSync = "";
+      db.settings.mustChangePin = false;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+      setCloudStatus("Téléphone déconnecté du cloud", "warn");
+      renderCloudPage();
+    }
+
+    function cloudSnapshotPayload(){
+      return {
+        version: 1,
+        parts: db.parts.map(p => {
+          const copy = {...p};
+          delete copy.photoData;
+          return copy;
+        }),
+        moves: db.moves.map(m => ({...m})),
+        settings: {
+          createdAt: db.settings.createdAt || nowISO(),
+          lastSave: db.settings.lastSave || nowISO()
+        }
+      };
+    }
+
+    function queueCloudSync(){
+      if(!cloudConfigured() || db.settings.mustChangePin || !navigator.onLine) return;
+      clearTimeout(cloudSyncTimer);
+      cloudSyncTimer = setTimeout(()=>pushCloudSnapshot(true), 1400);
+    }
+
+    async function manualCloudSync(){
+      if(!cloudConfigured()){
+        toast("Connecte d'abord ton compte cloud");
+        go("cloud");
+        return false;
+      }
+      if(db.settings.mustChangePin){
+        appAlert("Modifie d'abord le PIN temporaire dans Mon compte cloud.");
+        go("cloud");
+        return false;
+      }
+      if(!navigator.onLine){
+        appAlert("Pas de connexion Internet. Le stock reste sauvegardé sur ce téléphone et sera synchronisé automatiquement dès que le réseau reviendra.");
+        return false;
+      }
+      if(cloudSyncRunning){
+        toast("Synchronisation déjà en cours");
+        return false;
+      }
+      return pushCloudSnapshot(false);
+    }
+
+    async function pushCloudSnapshot(silent = false){
+      if(!cloudConfigured()){
+        if(!silent) appAlert("Connecte d'abord ton compte cloud.");
+        return false;
+      }
+      if(db.settings.mustChangePin){
+        if(!silent) appAlert("Modifie d'abord le PIN temporaire dans Mon compte cloud.");
+        return false;
+      }
+      if(cloudSyncRunning) return false;
+      cloudSyncRunning = true;
+      renderCloudSummary();
+      try{
+        const data = await cloudFetch("/api/sync/push", {
+          method:"POST",
+          body:JSON.stringify({snapshot:cloudSnapshotPayload()})
+        });
+        db.settings.lastCloudSync = data.updatedAt || nowISO();
+        db.settings.lastCloudRevision = data.revision || "";
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+        setCloudStatus("Stock synchronisé", "");
+        if(!silent) toast("Stock envoyé dans le cloud");
+        return true;
+      }catch(e){
+        console.error(e);
+        setCloudStatus("Synchronisation en attente : " + e.message, "warn");
+        if(!silent) appAlert("Envoi vers le cloud impossible : " + e.message + "\n\nLe stock reste sauvegardé sur ce téléphone.");
+        return false;
+      }finally{
+        cloudSyncRunning = false;
+        renderCloudSummary();
+        if(currentView === "cloud") renderCloudPage();
+      }
+    }
+
+    async function pullCloudSnapshot(confirmReplace = true){
+      if(!cloudConfigured()){
+        appAlert("Connecte d'abord ton compte cloud.");
+        return false;
+      }
+      if(db.settings.mustChangePin){
+        appAlert("Modifie d'abord le PIN temporaire dans Mon compte cloud.");
+        return false;
+      }
+      if(confirmReplace && db.parts.length && !await appConfirm(
+        "Remplacer le stock de ce téléphone par la sauvegarde du cloud ?\n\nLes photos déjà présentes sur les fiches identiques seront conservées localement.",
+        {title:"Récupérer le stock du cloud", type:"warn", confirmText:"Remplacer"}
+      )) return false;
+
+      cloudSyncRunning = true;
+      renderCloudSummary();
+      try{
+        const data = await cloudFetch("/api/sync/pull");
+        if(!data.snapshot){
+          toast("Aucun stock à récupérer dans le cloud");
+          return false;
+        }
+        const oldPhotos = new Map(db.parts.filter(p=>p.photoData).map(p=>[p.id,p.photoData]));
+        const safeParts = Array.isArray(data.snapshot.parts) ? data.snapshot.parts.map(p=>({ ...p, designation:upperDesignation(p.designation), photoData:oldPhotos.get(p.id) || "" })) : [];
+        const safeMoves = Array.isArray(data.snapshot.moves) ? data.snapshot.moves : [];
+        const preserved = {
+          technicianName: db.settings.technicianName,
+          technicianDepot: db.settings.technicianDepot,
+          mustChangePin: db.settings.mustChangePin
+        };
+        db = {
+          parts:safeParts,
+          moves:safeMoves,
+          settings:{
+            ...(data.snapshot.settings || {}),
+            ...preserved,
+            lastCloudSync:data.updatedAt || nowISO(),
+            lastCloudRevision:data.revision || "",
+            lastSave:nowISO()
+          }
+        };
+        save({skipCloud:true});
+        setCloudStatus("Stock récupéré depuis le cloud", "");
+        toast("Stock du cloud récupéré");
+        renderHome();
+        return true;
+      }catch(e){
+        setCloudStatus(e.message, "danger");
+        appAlert("Récupération depuis le cloud impossible : " + e.message);
+        return false;
+      }finally{
+        cloudSyncRunning = false;
+        renderCloudSummary();
+        if(currentView === "cloud") renderCloudPage();
+      }
+    }
+
+    async function autoCloudSyncOnStart(){
+      if(!cloudConfigured() || db.settings.mustChangePin || !navigator.onLine) return;
+      try{
+        const status = await cloudFetch("/api/sync/status");
+        const localChanged = Boolean(db.settings.lastSave && (!db.settings.lastCloudSync || new Date(db.settings.lastSave) > new Date(db.settings.lastCloudSync)));
+        const remoteChanged = Boolean(status.updatedAt && (!db.settings.lastCloudSync || new Date(status.updatedAt) > new Date(db.settings.lastCloudSync)));
+
+        if(!status.hasSnapshot && db.parts.length){
+          await pushCloudSnapshot(true);
+        }else if(status.hasSnapshot && db.parts.length === 0){
+          await pullCloudSnapshot(false);
+        }else if(localChanged && !remoteChanged){
+          await pushCloudSnapshot(true);
+        }else if(remoteChanged && !localChanged){
+          await pullCloudSnapshot(false);
+        }else if(localChanged && remoteChanged){
+          setCloudStatus("Conflit possible entre ce téléphone et le cloud : synchronisation automatique suspendue.", "warn");
+        }else{
+          setCloudStatus("Stock dans le cloud à jour", "");
+        }
+      }catch(e){
+        console.warn("Synchronisation automatique :", e);
+        setCloudStatus("Cloud indisponible, utilisation locale", "warn");
+      }
+    }
+
+    async function searchColleagueStock(){
+      const q = normalize($("colleagueSearchInput").value);
+      const resultsBox = $("colleagueSearchResults");
+      if(!cloudConfigured()){
+        appAlert("Connecte d'abord ton compte cloud.");
+        go("cloud");
+        return;
+      }
+      if(db.settings.mustChangePin){
+        appAlert("Modifie d'abord le PIN temporaire dans Mon compte cloud.");
+        go("cloud");
+        return;
+      }
+      if(q.length < 2){ toast("Saisis au moins 2 caractères"); return; }
+
+      $("colleagueSearchStatus").textContent = "Recherche en cours…";
+      resultsBox.innerHTML = '<div class="empty"><span class="sync-spin">↻</span> Recherche dans les stocks…</div>';
+      try{
+        const data = await cloudFetch("/api/search?q=" + encodeURIComponent(q));
+        const results = Array.isArray(data.results) ? data.results : [];
+        $("colleagueResultCount").textContent = results.length + (results.length > 1 ? " résultats" : " résultat");
+        $("colleagueSearchStatus").textContent = "Recherche : " + q + " · mise à jour en temps réel depuis le cloud";
+        resultsBox.innerHTML = results.length ? results.map(r => `
+          <div class="item cloud-result ${r.mine ? "mine" : ""}">
+            <div class="item-head">
+              <div style="min-width:0">
+                <div class="item-title">${escapeHtml(r.designation || "Pièce sans nom")}</div>
+                <div class="item-meta">
+                  Réf : <span class="cloud-code">${escapeHtml(r.reference || "-")}</span> · Code : <span class="cloud-code">${escapeHtml(r.barcode || "-")}</span><br>
+                  ${escapeHtml([r.brand,r.machine,r.typePiece].filter(Boolean).join(" · ") || "Informations complémentaires non renseignées")}<br>
+                  Technicien : <strong>${escapeHtml(r.technicianName || "-")}</strong> · Dépôt : <strong>${escapeHtml(r.depotNumber || "-")}</strong><br>
+                  Dernière mise à jour : ${fmtDate(r.updatedAt)}
+                </div>
+              </div>
+              <div style="text-align:right">
+                <div class="qty">${Number(r.qty || 0)}</div>
+                <span class="pill ${r.mine ? "ok" : ""}">${r.mine ? "Mon stock" : "Disponible"}</span>
+              </div>
+            </div>
+          </div>
+        `).join("") : '<div class="empty">Aucun technicien ne possède actuellement cette pièce en stock.</div>';
+      }catch(e){
+        $("colleagueSearchStatus").textContent = "Recherche impossible : " + e.message;
+        resultsBox.innerHTML = '<div class="empty">Le cloud est indisponible ou la connexion a expiré.</div>';
+      }
+    }
+
+    function useScannedCodeForColleagueSearch(){
+      const code = normalize($("manualCode")?.value || "");
+      if(!code){ toast("Aucun code saisi dans l'écran Scanner"); return; }
+      $("colleagueSearchInput").value = code;
+      searchColleagueStock();
+    }
+
+    async function loadCloudBackups(){
+      if(!cloudConfigured()){ appAlert("Connecte d'abord ton compte cloud."); return; }
+      if(db.settings.mustChangePin){ appAlert("Modifie d'abord le PIN temporaire."); return; }
+      try{
+        const data = await cloudFetch("/api/backups");
+        const list = Array.isArray(data.backups) ? data.backups : [];
+        $("cloudBackupSelect").innerHTML = list.length
+          ? '<option value="">Choisir une date</option>' + list.map(b=>`<option value="${escapeHtml(b.backupDate)}">${escapeHtml(b.backupDate)} · ${fmtDate(b.createdAt)}</option>`).join("")
+          : '<option value="">Aucune sauvegarde quotidienne disponible</option>';
+        toast(list.length + " sauvegarde(s) trouvée(s)");
+      }catch(e){
+        appAlert("Impossible de charger les sauvegardes : " + e.message);
+      }
+    }
+
+    async function restoreCloudBackup(){
+      const backupDate = normalize($("cloudBackupSelect").value);
+      if(!backupDate){ toast("Choisis une sauvegarde"); return; }
+      if(!await appConfirm(
+        "Restaurer le stock du cloud du " + backupDate + " ?\n\nLe stock actuel dans le cloud sera remplacé, puis téléchargé sur ce téléphone.",
+        {title:"Restaurer une sauvegarde", type:"warn", confirmText:"Restaurer"}
+      )) return;
+      try{
+        await cloudFetch("/api/backups/restore", {method:"POST", body:JSON.stringify({backupDate})});
+        await pullCloudSnapshot(false);
+        toast("Sauvegarde restaurée");
+      }catch(e){
+        appAlert("Restauration impossible : " + e.message);
+      }
+    }
+
+    window.addEventListener("online", ()=>{
+      renderCloudSummary();
+      autoCloudSyncOnStart();
+    });
+    window.addEventListener("offline", renderCloudSummary);
+
+    function exportCSV(){
+      const rows = [[
+        "code_barres","reference","designation","type_piece","marque","machine","emplacement",
+        "quantite","stock_minimum","fournisseur","prix","notes","date_creation","date_modification"
+      ]];
+      db.parts.forEach(p=>rows.push([
+        p.barcode,p.reference,p.designation,p.typePiece,p.brand,p.machine,p.location,
+        p.qty,p.minQty,p.supplier,p.price,p.notes,p.createdAt,p.updatedAt
+      ]));
+      downloadText("inventaire_fourgon_sav.csv", toCSV(rows), "text/csv;charset=utf-8");
+    }
+
+    function exportShoppingCSV(){
+      const rows = [["reference","designation","type_piece","marque","machine","emplacement","quantite","stock_minimum","quantite_a_prevoir"]];
+      db.parts.filter(isLow).forEach(p=>{
+        const need = Math.max(1, Number(p.minQty || 0) - Number(p.qty || 0));
+        rows.push([p.reference,p.designation,p.typePiece,p.brand,p.machine,p.location,p.qty,p.minQty,need]);
+      });
+      downloadText("pieces_a_recommander.csv", toCSV(rows), "text/csv;charset=utf-8");
+    }
+
+    function exportJSON(){
+      downloadText("sauvegarde_stock_fourgon_sav.json", JSON.stringify(db,null,2), "application/json;charset=utf-8");
+    }
+
+    function toCSV(rows){
+      return "\uFEFF" + rows.map(row => row.map(cell => {
+        cell = (cell ?? "").toString().replace(/\r?\n/g," ");
+        return `"${cell.replace(/"/g,'""')}"`;
+      }).join(";")).join("\n");
+    }
+
+    function downloadText(filename, content, mime){
+      const blob = new Blob([content], {type:mime});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 1000);
+      toast("Export lancé");
+    }
+
+    async function importFile(event){
+      const file = event.target.files && event.target.files[0];
+      if(!file) return;
+      const text = await file.text();
+      if(file.name.toLowerCase().endsWith(".json")){
+        try{
+          const imported = JSON.parse(text);
+          if(!Array.isArray(imported.parts)) throw new Error("Format JSON invalide");
+          if(!await appConfirm(
+            "Importer cette sauvegarde complète ? Les données actuelles seront remplacées.",
+            {title:"Importer la sauvegarde", type:"warn", confirmText:"Importer"}
+          )) return;
+          const cloudSettings = {
+            technicianName: db.settings.technicianName || "",
+            technicianDepot: db.settings.technicianDepot || ""
+          };
+          db = {
+            parts: (imported.parts || []).map(p=>({ ...p, designation:upperDesignation(p.designation) })),
+            moves: imported.moves || [],
+            settings: { ...(imported.settings || {}), ...cloudSettings }
+          };
+          save();
+          toast("Sauvegarde importée");
+          go("inventory");
+        }catch(e){
+          appAlert("Import JSON impossible : " + e.message);
+        }
+      }else{
+        importCSV(text);
+      }
+      event.target.value = "";
+    }
+
+    function importCSV(text){
+      const rows = parseCSV(text);
+      if(rows.length < 2){ appAlert("CSV vide ou invalide"); return; }
+
+      const header = rows[0].map(h=>lower(h).replace(/[\s\-]/g,"_"));
+      const idx = (names) => {
+        for(const n of names){
+          const i = header.indexOf(n);
+          if(i >= 0) return i;
+        }
+        return -1;
+      };
+
+      const map = {
+        barcode: idx(["code_barres","barcode","code","ean"]),
+        reference: idx(["reference","référence","ref","réf"]),
+        designation: idx(["designation","désignation","nom","piece","pièce"]),
+        typePiece: idx(["type_piece","type","categorie","catégorie"]),
+        brand: idx(["marque","brand"]),
+        machine: idx(["machine","materiel","matériel"]),
+        location: idx(["emplacement","location","bac","tiroir"]),
+        qty: idx(["quantite","quantité","qty","stock"]),
+        minQty: idx(["stock_minimum","minimum","mini","stock_mini"]),
+        supplier: idx(["fournisseur","supplier"]),
+        price: idx(["prix","price"]),
+        notes: idx(["notes","note","commentaire"])
+      };
+
+      // Détection des doublons :
+      // 1) même code-barres
+      // 2) même référence
+      // 3) si pas assez d'infos, même désignation + marque + machine
+      function duplicateKeysFromData(data){
+        const keys = [];
+
+        // Une pièce possédant un code-barres ou une référence est identifiée
+        // uniquement par ces valeurs. Deux références différentes peuvent donc
+        // avoir exactement la même désignation sans être considérées comme doublons.
+        if(data.barcode) keys.push("barcode:" + lower(data.barcode));
+        if(data.reference) keys.push("reference:" + lower(data.reference));
+
+        // La désignation + marque + machine sert seulement de solution de secours
+        // lorsque la ligne ne possède ni code-barres ni référence.
+        if(!data.barcode && !data.reference && data.designation){
+          const identity = [data.designation, data.brand, data.machine].map(lower).join("|");
+          if(identity.replace(/\|/g,"").length > 0){
+            keys.push("identity:" + identity);
+          }
+        }
+
+        return keys;
+      }
+
+      const existingKeys = new Set();
+
+      // On charge d'abord les clés déjà présentes dans l'application.
+      db.parts.forEach(p => {
+        duplicateKeysFromData({
+          barcode: p.barcode,
+          reference: p.reference,
+          designation: p.designation,
+          brand: p.brand,
+          machine: p.machine
+        }).forEach(k => existingKeys.add(k));
+      });
+
+      let added = 0;
+      let duplicates = 0;
+      let ignored = 0;
+
+      for(let r=1; r<rows.length; r++){
+        const row = rows[r];
+        const val = (k) => map[k] >= 0 ? normalize(row[map[k]]) : "";
+
+        const data = {
+          barcode: val("barcode"),
+          reference: val("reference"),
+          designation: upperDesignation(val("designation")),
+          typePiece: val("typePiece"),
+          brand: val("brand"),
+          machine: val("machine"),
+          location: val("location"),
+          qty: Number(String(val("qty")).replace(",", ".")) || 0,
+          minQty: Number(String(val("minQty")).replace(",", ".")) || 0,
+          supplier: val("supplier"),
+          price: val("price"),
+          notes: val("notes"),
+          updatedAt: nowISO()
+        };
+
+        if(!data.barcode && !data.reference && !data.designation){
+          ignored++;
+          continue;
+        }
+
+        if(!data.designation){
+          data.designation = upperDesignation(data.reference || data.barcode || "PIÈCE SANS NOM");
+        }
+
+        const keys = duplicateKeysFromData(data);
+
+        // Doublon détecté soit dans l'inventaire existant, soit dans les lignes déjà importées de ce CSV.
+        const isDuplicate = keys.some(k => existingKeys.has(k));
+
+        if(isDuplicate){
+          duplicates++;
+          continue;
+        }
+
+        const p = {
+          id: uid(),
+          ...data,
+          photoData:"",
+          createdAt: nowISO()
+        };
+
+        db.parts.push(p);
+        keys.forEach(k => existingKeys.add(k));
+        added++;
+      }
+
+      save();
+
+      const message =
+        `Import terminé :\n\n` +
+        `✅ ${added} pièce(s) ajoutée(s)\n` +
+        `⛔ ${duplicates} doublon(s) ignoré(s)\n` +
+        `⚪ ${ignored} ligne(s) vide(s) ou incomplète(s) ignorée(s)`;
+
+      appAlert(message, {title:"Import terminé", type:"success"});
+      toast(`Import : ${added} ajoutée(s), ${duplicates} doublon(s) ignoré(s)`);
+      go("inventory");
+    }
+
+    function parseCSV(text){
+      text = text.replace(/^\uFEFF/,"");
+      const sep = (text.split("\n")[0].match(/;/g)||[]).length >= (text.split("\n")[0].match(/,/g)||[]).length ? ";" : ",";
+      const rows = [];
+      let row = [], cell = "", inQuotes = false;
+      for(let i=0; i<text.length; i++){
+        const ch = text[i];
+        const next = text[i+1];
+        if(ch === '"' && inQuotes && next === '"'){ cell += '"'; i++; continue; }
+        if(ch === '"'){ inQuotes = !inQuotes; continue; }
+        if(ch === sep && !inQuotes){ row.push(cell); cell = ""; continue; }
+        if((ch === "\n" || ch === "\r") && !inQuotes){
+          if(ch === "\r" && next === "\n") i++;
+          row.push(cell); rows.push(row); row = []; cell = ""; continue;
+        }
+        cell += ch;
+      }
+      if(cell || row.length){ row.push(cell); rows.push(row); }
+      return rows.filter(r=>r.some(c=>normalize(c)));
+    }
+
+    async function resetAll(){
+      if(!await appConfirm(
+        "Effacer TOUT l'inventaire et l'historique de ce téléphone ?",
+        {title:"Effacer l'inventaire", type:"danger", confirmText:"Continuer"}
+      )) return;
+      if(!await appConfirm(
+        "Dernière confirmation : cette action est irréversible sans sauvegarde JSON.",
+        {title:"Confirmation définitive", type:"danger", confirmText:"Tout effacer"}
+      )) return;
+      const preservedCloud = {
+        technicianName: db.settings.technicianName || "",
+        technicianDepot: db.settings.technicianDepot || ""
+      };
+      db = { parts: [], moves: [], settings: { createdAt: nowISO(), ...preservedCloud } };
+      save();
+      toast("Inventaire effacé");
+      go("home");
+    }
+
+    function escapeHtml(s){
+      return (s ?? "").toString()
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#039;");
+    }
+
+    function resizeImage(file, maxSize = 900, quality = .75){
+      return new Promise((resolve, reject)=>{
+        const img = new Image();
+        const reader = new FileReader();
+        reader.onload = () => { img.src = reader.result; };
+        reader.onerror = reject;
+        img.onload = () => {
+          let {width, height} = img;
+          const ratio = Math.min(1, maxSize / Math.max(width, height));
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/jpeg", quality));
+        };
+        img.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    window.addEventListener("beforeunload", stopScanner);
+
+    load();
+    renderHome();
+    renderCloudSummary();
+    setNavActive("home");
+    setTimeout(autoCloudSyncOnStart, 500);
+  </script>
+</body>
+</html>
