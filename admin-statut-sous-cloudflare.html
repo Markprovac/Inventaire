@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#0f172a">
+  <title>Administration — Stock Fourgon SAV</title>
+  <style>
+    :root{
+      --bg:#08111f;
+      --surface:#0f1b2d;
+      --surface-2:#14233a;
+      --surface-3:#192b45;
+      --text:#f8fafc;
+      --muted:#aebbd0;
+      --line:#2b405e;
+      --accent:#38bdf8;
+      --accent-strong:#0284c7;
+      --ok:#22c55e;
+      --warn:#f59e0b;
+      --danger:#ef4444;
+      --shadow:0 18px 45px rgba(0,0,0,.28);
+      --radius:20px;
+    }
+
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+      background:
+        radial-gradient(circle at top right,rgba(56,189,248,.12),transparent 32rem),
+        linear-gradient(180deg,#07101d 0%,#0b1423 45%,#0d1727 100%);
+      color:var(--text);
+    }
+
+    button,input,select{font:inherit}
+    button{touch-action:manipulation}
+
+    header{
+      position:sticky;
+      top:0;
+      z-index:30;
+      padding:12px 14px;
+      background:rgba(7,16,29,.92);
+      backdrop-filter:blur(14px);
+      border-bottom:1px solid rgba(148,163,184,.18);
+    }
+
+    .topbar{
+      max-width:1100px;
+      margin:auto;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+
+    .brand{display:flex;align-items:center;gap:11px;min-width:0}
+    .brand-icon{
+      width:42px;height:42px;flex:0 0 42px;
+      display:grid;place-items:center;
+      border-radius:14px;
+      background:linear-gradient(145deg,#0ea5e9,#2563eb);
+      box-shadow:0 10px 25px rgba(14,165,233,.25);
+      font-size:21px;
+    }
+    h1{font-size:18px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .subtitle{font-size:12px;color:var(--muted);margin-top:3px}
+
+    main{max-width:1100px;margin:auto;padding:18px 14px 54px}
+
+    .admin-view{display:none}
+    .admin-view.active{display:block;animation:viewIn .2s ease}
+    @keyframes viewIn{from{opacity:.45;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+    .page-heading{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      margin:4px 0 16px;
+    }
+    .page-heading h2{font-size:24px;margin:0 0 5px}
+    .page-heading p{margin:0;color:var(--muted);line-height:1.45}
+
+    .card{
+      background:linear-gradient(180deg,rgba(20,35,58,.96),rgba(15,27,45,.96));
+      border:1px solid rgba(87,116,153,.42);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:16px;
+      margin-bottom:14px;
+    }
+    .card.soft{box-shadow:none;background:rgba(15,27,45,.72)}
+    .danger-zone{border-color:rgba(239,68,68,.58)}
+
+    .grid{display:grid;grid-template-columns:1fr;gap:14px}
+    .form-grid{display:grid;gap:0 12px}
+    @media(min-width:760px){
+      .grid.two{grid-template-columns:1fr 1fr}
+      .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
+
+    .dashboard-grid{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:14px;
+      margin-top:14px;
+    }
+    @media(min-width:720px){.dashboard-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+    .nav-tile{
+      position:relative;
+      min-height:172px;
+      width:100%;
+      padding:18px;
+      text-align:left;
+      display:flex;
+      flex-direction:column;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:18px;
+      color:var(--text);
+      background:linear-gradient(155deg,rgba(25,43,69,.96),rgba(14,27,46,.96));
+      border:1px solid rgba(86,116,153,.48);
+      border-radius:22px;
+      box-shadow:var(--shadow);
+      cursor:pointer;
+      overflow:hidden;
+      transition:transform .18s ease,border-color .18s ease,background .18s ease;
+    }
+    .nav-tile::after{
+      content:"";
+      position:absolute;
+      width:120px;height:120px;
+      right:-42px;bottom:-52px;
+      border-radius:50%;
+      background:rgba(56,189,248,.10);
+    }
+    .nav-tile:hover,.nav-tile:focus-visible{
+      transform:translateY(-2px);
+      border-color:rgba(56,189,248,.78);
+      outline:none;
+    }
+    .nav-tile.selected{border-color:var(--accent)}
+    .nav-tile-icon{
+      width:48px;height:48px;
+      display:grid;place-items:center;
+      border-radius:16px;
+      background:rgba(56,189,248,.14);
+      border:1px solid rgba(56,189,248,.3);
+      font-size:24px;
+    }
+    .nav-tile-title{font-size:20px;font-weight:950;letter-spacing:.01em}
+    .nav-tile-text{color:var(--muted);font-size:13px;line-height:1.45;margin-top:5px}
+    .nav-tile-arrow{
+      position:absolute;right:17px;top:17px;
+      width:32px;height:32px;display:grid;place-items:center;
+      border-radius:999px;background:rgba(255,255,255,.07);
+      font-size:18px;
+    }
+
+    .dashboard-intro{
+      padding:20px;
+      border-radius:24px;
+      background:
+        linear-gradient(120deg,rgba(2,132,199,.22),rgba(37,99,235,.10)),
+        rgba(15,27,45,.95);
+      border:1px solid rgba(56,189,248,.38);
+      margin-bottom:14px;
+    }
+    .dashboard-intro h2{font-size:27px;margin:0 0 7px}
+    .dashboard-intro p{margin:0;color:#d4e4f5;line-height:1.5}
+
+    label{display:block;color:var(--muted);font-size:13px;font-weight:800;margin:0 0 6px}
+    .field{margin-bottom:12px}
+    input,select{
+      width:100%;
+      border:1px solid #405879;
+      background:#091525;
+      color:var(--text);
+      border-radius:14px;
+      padding:12px 13px;
+      font-size:16px;
+      outline:none;
+      transition:border-color .15s ease,box-shadow .15s ease;
+    }
+    input:focus,select:focus{
+      border-color:var(--accent);
+      box-shadow:0 0 0 3px rgba(56,189,248,.12);
+    }
+    input[readonly]{opacity:.75;background:#111827}
+
+    button{
+      border:0;
+      border-radius:13px;
+      padding:11px 14px;
+      background:var(--accent);
+      color:#04121a;
+      font-weight:900;
+      font-size:14px;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:7px;
+    }
+    button.secondary{background:#263a55;color:var(--text);border:1px solid #405879}
+    button.ok{background:var(--ok);color:#04120a}
+    button.warn{background:var(--warn);color:#1a1000}
+    button.danger{background:var(--danger);color:#fff}
+    button:disabled{opacity:.55;cursor:not-allowed}
+
+    .back-button{
+      flex:0 0 auto;
+      background:#172a43!important;
+      color:var(--text)!important;
+      border:1px solid #3a5374!important;
+    }
+
+    .btnrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    .notice{
+      border:1px solid rgba(56,189,248,.4);
+      background:rgba(56,189,248,.10);
+      padding:12px;
+      border-radius:15px;
+      line-height:1.45;
+      margin-bottom:12px;
+    }
+    .notice.warn{border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.12)}
+    .notice.danger{border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.12)}
+    .muted,.mini{color:var(--muted)}
+    .mini{font-size:12px;line-height:1.4}
+    .pill{
+      display:inline-flex;
+      padding:6px 9px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      font-size:12px;
+      font-weight:900;
+      background:#091525;
+      color:var(--muted);
+      white-space:nowrap;
+    }
+    .pill.ok{color:#bbf7d0;border-color:rgba(34,197,94,.45)}
+    .pill.danger{color:#fecaca;border-color:rgba(239,68,68,.5)}
+    .pill.official{color:#bbf7d0;border-color:rgba(34,197,94,.55)}
+    .pill.community{color:#fde68a;border-color:rgba(245,158,11,.55)}
+    .role-admin{color:#bae6fd;border-color:rgba(56,189,248,.55)}
+
+    .list{display:flex;flex-direction:column;gap:10px}
+    .item{
+      border:1px solid var(--line);
+      background:rgba(25,43,69,.72);
+      border-radius:17px;
+      padding:13px;
+      display:grid;
+      gap:10px;
+    }
+    .item-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+    .item-title{font-weight:950;font-size:16px}
+    .item-meta{color:var(--muted);font-size:13px;line-height:1.5;margin-top:4px}
+    .empty{text-align:center;color:var(--muted);padding:26px 8px;border:1px dashed var(--line);border-radius:16px}
+    .section-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+    .section-title h2{font-size:19px;margin:0}
+
+    .toast{
+      position:fixed;
+      left:12px;right:12px;bottom:18px;
+      background:#f8fafc;color:#0f172a;
+      border-radius:16px;padding:13px;
+      font-weight:900;
+      box-shadow:var(--shadow);
+      z-index:99;
+      transform:translateY(120px);
+      opacity:0;
+      transition:.25s;
+      text-align:center;
+    }
+    .toast.show{transform:translateY(0);opacity:1}
+    code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+    .storage-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+    .storage-grid>div{background:#091525;border:1px solid var(--line);border-radius:14px;padding:10px}
+    .storage-grid strong{display:block;font-size:18px}
+    .storage-grid span{font-size:11px;color:var(--muted)}
+    .meter{height:14px;border-radius:999px;border:1px solid var(--line);background:#091525;overflow:hidden;margin-top:10px}
+    .meter>div{height:100%;width:0;background:var(--ok);transition:width .25s}
+
+    .photo-admin-grid{display:grid;grid-template-columns:1fr;gap:12px}
+    @media(min-width:760px){.photo-admin-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    .admin-photo{width:100%;max-height:240px;object-fit:contain;background:#091525;border:1px solid var(--line);border-radius:14px}
+
+    .catalog-search-row{display:grid;grid-template-columns:1fr;gap:8px}
+    @media(min-width:680px){.catalog-search-row{grid-template-columns:1fr auto}}
+    .catalog-editor{border-color:rgba(56,189,248,.55)}
+    .hidden{display:none!important}
+
+    @media(max-width:560px){
+      .topbar{align-items:flex-start}
+      .topbar .pill{margin-top:3px}
+      .dashboard-intro h2{font-size:23px}
+      .page-heading{align-items:center}
+      .page-heading h2{font-size:21px}
+      .page-heading p{font-size:13px}
+      .btnrow>button{flex:1 1 140px}
+    }
+
+    /* Carte Google Drive plus compacte */
+    #photoStorageCard{padding:14px}
+    #photoStorageCard .section-title{margin-bottom:8px}
+    #photoStorageCard #photoStorageText{font-size:13px;line-height:1.35}
+    #photoStorageCard .meter{height:10px;margin-top:8px}
+    #photoStorageCard .storage-grid{
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:6px;
+      margin-top:8px;
+    }
+    #photoStorageCard .storage-grid>div{
+      min-width:0;
+      padding:8px 5px;
+      text-align:center;
+      border-radius:12px;
+    }
+    #photoStorageCard .storage-grid strong{
+      font-size:16px;
+      line-height:1.1;
+    }
+    #photoStorageCard .storage-grid span{
+      display:block;
+      margin-top:4px;
+      font-size:10px;
+      line-height:1.2;
+      overflow-wrap:anywhere;
+    }
+    #photoStorageCard .btnrow{margin-top:10px!important}
+
+    @media(max-width:420px){
+      #photoStorageCard{padding:12px}
+      #photoStorageCard .storage-grid{gap:5px}
+      #photoStorageCard .storage-grid>div{padding:7px 4px}
+      #photoStorageCard .storage-grid strong{font-size:15px}
+      #photoStorageCard .storage-grid span{font-size:9px}
+    }
+
+
+    .status-stack{
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
+      gap:7px;
+      flex:0 0 auto;
+    }
+    .status-stack .pill{justify-content:center}
+
+  </style>
+</head>
+<body>
+<header>
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-icon">⚙️</div>
+      <div>
+        <h1>Administration — Stock Fourgon SAV</h1>
+        <div class="subtitle">Tableau de bord administrateur</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="admin-view active" id="view-dashboard">
+    <div class="card">
+      <div class="section-title">
+        <h2>🔐 Accès administrateur</h2>
+        <div class="status-stack">
+          <span class="pill">Cloudflare Secret</span>
+          <span class="pill" id="workerStatus">Non testé</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Mot de passe administrateur</label>
+        <input id="adminSecret" type="password" autocomplete="off" placeholder="Secret ADMIN_SECRET configuré dans Cloudflare">
+      </div>
+      <div class="btnrow">
+        <button class="secondary" onclick="testWorker()">Tester le Worker</button>
+        <button class="ok" onclick="loadAccounts()">Actualiser toutes les données</button>
+        <button class="secondary" onclick="clearSecret()">Effacer le secret de l'écran</button>
+      </div>
+      <div id="globalNotice" class="mini" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card" id="photoStorageCard">
+      <div class="section-title">
+        <h2>☁️ État de Google Drive</h2>
+        <span class="pill" id="photoStorageState">Non chargé</span>
+      </div>
+      <div id="photoStorageText" class="muted">Saisis le secret administrateur puis actualise les données.</div>
+      <div class="meter"><div id="photoStorageMeter"></div></div>
+      <div class="storage-grid">
+        <div><strong id="photoStorageUsed">—</strong><span>utilisé sur limite 12 Go</span></div>
+        <div><strong id="photoOfficialCount">—</strong><span>photos officielles</span></div>
+        <div><strong id="photoPendingCount">—</strong><span>propositions en attente</span></div>
+      </div>
+      <div class="btnrow" style="margin-top:12px">
+        <button class="ok" onclick="loadPhotoDashboard()">Actualiser l'état du Drive</button>
+      </div>
+    </div>
+
+    <div class="dashboard-grid">
+      <button class="nav-tile" data-view="photos" onclick="showAdminView('photos')">
+        <span class="nav-tile-arrow">→</span>
+        <span class="nav-tile-icon">📷</span>
+        <span>
+          <span class="nav-tile-title">Photos</span>
+          <span class="nav-tile-text">Photos officielles, propositions, validation, remplacement et suppression.</span>
+        </span>
+      </button>
+
+      <button class="nav-tile" data-view="catalogue" onclick="showAdminView('catalogue')">
+        <span class="nav-tile-arrow">→</span>
+        <span class="nav-tile-icon">📦</span>
+        <span>
+          <span class="nav-tile-title">Catalogue</span>
+          <span class="nav-tile-text">Recherche, correction et gestion du catalogue partagé de pièces détachées.</span>
+        </span>
+      </button>
+
+      <button class="nav-tile" data-view="comptes" onclick="showAdminView('comptes')">
+        <span class="nav-tile-arrow">→</span>
+        <span class="nav-tile-icon">👥</span>
+        <span>
+          <span class="nav-tile-title">Comptes</span>
+          <span class="nav-tile-text">Codes PIN, rôles, restauration, désactivation et suppression des comptes.</span>
+        </span>
+      </button>
+    </div>
+  </section>
+
+  <section class="admin-view" id="view-photos">
+    <div class="page-heading">
+      <div>
+        <h2>📷 Gestion des photos</h2>
+        <p>Centralise ici toutes les opérations liées aux photos du catalogue.</p>
+      </div>
+      <button class="back-button" onclick="showAdminView('dashboard')">← Tableau de bord</button>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">Ajouter ou remplacer une photo officielle</h2>
+      <p class="muted">Une référence existante est remplacée : aucune copie officielle supplémentaire n'est conservée.</p>
+      <div class="form-grid">
+        <div class="field"><label>Référence</label><input id="officialReference" placeholder="Ex : 985421"></div>
+        <div class="field"><label>Code-barres</label><input id="officialBarcode" placeholder="Facultatif si référence renseignée"></div>
+        <div class="field"><label>Désignation</label><input id="officialDesignation" placeholder="Nom de la pièce"></div>
+        <div class="field"><label>Photo</label><input id="officialPhotoFile" type="file" accept="image/*" capture="environment"></div>
+      </div>
+      <button class="ok" onclick="uploadOfficialPhoto()">Envoyer comme photo officielle</button>
+      <div id="officialUploadNotice" class="mini" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title"><h2>Photos proposées</h2><span class="pill" id="proposalCount">0</span></div>
+      <div id="proposalList" class="list"><div class="empty">Actualise les photos pour afficher les propositions.</div></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title"><h2>Photos officielles</h2><span class="pill" id="catalogCount">0</span></div>
+      <div class="field"><label>Filtrer le catalogue</label><input id="catalogFilter" placeholder="Référence, code ou désignation…" oninput="renderCatalog()"></div>
+      <div id="catalogList" class="list"><div class="empty">Catalogue non chargé.</div></div>
+    </div>
+  </section>
+
+  <section class="admin-view" id="view-catalogue">
+    <div class="page-heading">
+      <div>
+        <h2>📦 Catalogue de pièces</h2>
+        <p>Recherche, corrige et verrouille les fiches du catalogue partagé.</p>
+      </div>
+      <button class="back-button" onclick="showAdminView('dashboard')">← Tableau de bord</button>
+    </div>
+
+    <div class="card" id="partsCatalogCard">
+      <div class="section-title">
+        <h2>🧩 Catalogue de pièces détachées</h2>
+        <span class="pill" id="partsCatalogCount">0 fiche</span>
+      </div>
+      <div class="notice">
+        La <strong>référence</strong> est la clé unique. Corriger ou supprimer une fiche ici ne modifie aucun stock personnel. Une fiche marquée <strong>Officielle</strong> est verrouillée contre les synchronisations des techniciens.
+      </div>
+      <div class="catalog-search-row">
+        <input id="partsCatalogQuery" placeholder="Recherche par référence, désignation, code-barres ou fournisseur…" onkeydown="if(event.key==='Enter') searchPartsCatalog()">
+        <button class="ok" onclick="searchPartsCatalog()">Rechercher</button>
+      </div>
+      <div id="partsCatalogNotice" class="mini" style="margin:10px 0"></div>
+      <div id="partsCatalogList" class="list"><div class="empty">Saisis ton secret puis lance une recherche.</div></div>
+    </div>
+
+    <div class="card catalog-editor hidden" id="partsCatalogEditor">
+      <div class="section-title">
+        <h2>Modifier la fiche du catalogue</h2>
+        <span class="pill" id="partsCatalogEditorStatus">Communautaire</span>
+      </div>
+      <div class="notice warn">
+        Vérifie soigneusement la référence avant de valider. Elle est la clé unique et reste volontairement non modifiable dans cet écran.
+      </div>
+      <div class="form-grid">
+        <div class="field"><label>Référence unique</label><input id="editCatalogReference" readonly></div>
+        <div class="field"><label>Désignation</label><input id="editCatalogDesignation" placeholder="Nom correct de la pièce"></div>
+        <div class="field"><label>Code-barres</label><input id="editCatalogBarcode" placeholder="Facultatif"></div>
+        <div class="field"><label>Type de pièce</label><input id="editCatalogType" placeholder="Facultatif"></div>
+        <div class="field"><label>Marque</label><input id="editCatalogBrand" placeholder="Facultatif"></div>
+        <div class="field"><label>Machine / équipement</label><input id="editCatalogMachine" placeholder="Facultatif"></div>
+        <div class="field"><label>Fournisseur</label><input id="editCatalogSupplier" placeholder="Facultatif"></div>
+        <div class="field">
+          <label>Statut de la fiche</label>
+          <select id="editCatalogSource" onchange="updateCatalogEditorStatus()">
+            <option value="community">Communautaire — peut encore être complétée</option>
+            <option value="official">Officielle — verrouillée</option>
+          </select>
+        </div>
+      </div>
+      <div class="btnrow">
+        <button class="ok" onclick="savePartsCatalogItem()">Enregistrer la correction</button>
+        <button class="secondary" onclick="closePartsCatalogEditor()">Annuler</button>
+      </div>
+      <div id="partsCatalogEditNotice" class="mini" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <section class="admin-view" id="view-comptes">
+    <div class="page-heading">
+      <div>
+        <h2>👥 Gestion des comptes</h2>
+        <p>Gère les codes PIN, les rôles et le cycle de vie des comptes techniciens.</p>
+      </div>
+      <button class="back-button" onclick="showAdminView('dashboard')">← Tableau de bord</button>
+    </div>
+
+    <div class="grid two">
+      <div class="card">
+        <h2 style="margin-top:0">Créer un PIN temporaire</h2>
+        <p class="muted">Le stock reste intact. Toutes les anciennes connexions du technicien sont révoquées et il devra choisir un nouveau PIN personnel.</p>
+        <div class="field">
+          <label>Numéro de dépôt</label>
+          <input id="resetDepot" autocomplete="off" placeholder="Ex : 1254">
+        </div>
+        <div class="field">
+          <label>Nouveau PIN temporaire</label>
+          <input id="temporaryPin" type="password" inputmode="numeric" autocomplete="new-password" minlength="4" maxlength="12" placeholder="4 à 12 chiffres">
+        </div>
+        <button class="warn" onclick="resetPin()">Créer le PIN temporaire</button>
+        <div id="resetNotice" class="mini" style="margin-top:10px"></div>
+      </div>
+
+      <div class="card">
+        <h2 style="margin-top:0">Restaurer un compte désactivé</h2>
+        <p class="muted">À utiliser dans les 30 jours suivant la demande de suppression. Le technicien se reconnectera avec son PIN habituel.</p>
+        <div class="field">
+          <label>Numéro de dépôt</label>
+          <input id="restoreDepot" autocomplete="off" placeholder="Ex : 1254">
+        </div>
+        <button class="ok" onclick="restoreAccount()">Restaurer le compte</button>
+        <div id="restoreNotice" class="mini" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <div class="card danger-zone">
+      <h2 style="margin-top:0">Suppression définitive immédiate</h2>
+      <div class="notice danger">
+        Cette opération supprime le compte, le stock cloud, l'historique cloud et toutes les sauvegardes. Elle est destinée notamment aux comptes d'essai.
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label>Numéro de dépôt</label>
+          <input id="deleteDepot" autocomplete="off" placeholder="Ex : 01">
+        </div>
+        <div class="field">
+          <label>Confirmation</label>
+          <input id="deleteConfirmation" autocomplete="off" placeholder="Écris SUPPRIMER">
+        </div>
+      </div>
+      <button class="danger" onclick="deleteAccount()">Supprimer définitivement le compte</button>
+      <div id="deleteNotice" class="mini" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">
+        <h2>Comptes techniciens</h2>
+        <span class="pill" id="accountCount">0 compte</span>
+      </div>
+      <div class="field">
+        <label>Filtrer la liste</label>
+        <input id="accountFilter" placeholder="Nom ou numéro de dépôt…" oninput="renderAccounts()">
+      </div>
+      <div id="accountList" class="list"><div class="empty">Saisis ton secret puis actualise la liste.</div></div>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast"></div>
+
+<script>
+  const WORKER_URL = "https://stock-fourgon-api.markrusten-e08.workers.dev";
+  let accounts = [];
+  let photoDashboard = {storage:null,proposals:[],catalog:[]};
+  let partsCatalog = [];
+  let editingCatalogReferenceKey = "";
+
+  const $ = id => document.getElementById(id);
+
+  function normalize(value){
+    return (value ?? "").toString().trim();
+  }
+
+  function searchKey(value){
+    return normalize(value).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  }
+
+  function escapeHtml(value){
+    return (value ?? "").toString()
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+  }
+
+  function fmtDate(value){
+    if(!value) return "—";
+    const date = new Date(value);
+    if(Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString("fr-FR",{dateStyle:"short",timeStyle:"short"});
+  }
+
+  function toast(message){
+    const box = $("toast");
+    box.textContent = message;
+    box.classList.add("show");
+    clearTimeout(window.__toastTimer);
+    window.__toastTimer = setTimeout(()=>box.classList.remove("show"),2400);
+  }
+
+  function adminSecret(){
+    const value = normalize($("adminSecret").value);
+    if(value.length < 32) throw new Error("Saisis le secret ADMIN_SECRET complet.");
+    return value;
+  }
+
+  async function api(path, body = null, method = "POST"){
+    const controller = new AbortController();
+    const timer = setTimeout(()=>controller.abort(),20000);
+    try{
+      const response = await fetch(WORKER_URL + path,{
+        method,
+        headers:body ? {"Content-Type":"application/json"} : {},
+        body:body ? JSON.stringify(body) : undefined,
+        signal:controller.signal
+      });
+      const raw = await response.text();
+      let data = {};
+      try{data = raw ? JSON.parse(raw) : {}}catch{data = {message:raw}}
+      if(!response.ok) throw new Error(data.error || data.message || ("Erreur " + response.status));
+      return data;
+    }catch(error){
+      if(error.name === "AbortError") throw new Error("Le Worker Cloudflare ne répond pas.");
+      throw error;
+    }finally{
+      clearTimeout(timer);
+    }
+  }
+
+  async function testWorker(){
+    try{
+      const data = await api("/api/health",null,"GET");
+      $("workerStatus").className = "pill ok";
+      $("workerStatus").textContent = "Worker opérationnel";
+      $("globalNotice").textContent = data.message || "Connexion réussie.";
+      toast("Worker accessible");
+    }catch(error){
+      $("workerStatus").className = "pill danger";
+      $("workerStatus").textContent = "Worker indisponible";
+      $("globalNotice").textContent = error.message;
+      alert(error.message);
+    }
+  }
+
+  function clearSecret(){
+    $("adminSecret").value = "";
+    toast("Secret effacé de l'écran");
+  }
+
+  async function loadAccounts(){
+    try{
+      $("globalNotice").textContent = "Chargement des comptes…";
+      const data = await api("/api/admin/accounts",{adminSecret:adminSecret()});
+      accounts = Array.isArray(data.accounts) ? data.accounts : [];
+      renderAccounts();
+      $("globalNotice").textContent = accounts.length + " compte(s) chargé(s).";
+      toast("Liste actualisée");
+      loadPhotoDashboard().catch(()=>{});
+      searchPartsCatalog().catch(()=>{});
+    }catch(error){
+      $("globalNotice").textContent = "Échec : " + error.message;
+      alert("Impossible de charger les comptes : " + error.message);
+    }
+  }
+
+  function renderAccounts(){
+    const q = searchKey($("accountFilter").value);
+    const filtered = accounts.filter(account => !q || searchKey(account.name + " " + account.depotNumber).includes(q));
+    $("accountCount").textContent = filtered.length + (filtered.length > 1 ? " comptes" : " compte");
+    $("accountList").innerHTML = filtered.length ? filtered.map(account => {
+      const disabled = Boolean(account.disabledAt);
+      return `
+        <div class="item">
+          <div class="item-head">
+            <div>
+              <div class="item-title">${escapeHtml(account.name || "Technicien sans nom")}</div>
+              <div class="item-meta">
+                Dépôt : <strong>${escapeHtml(account.depotNumber || "—")}</strong><br>
+                Pièces : ${Number(account.partCount || 0)} · Quantité totale : ${Number(account.totalQty || 0)}<br>
+                Dernière synchronisation : ${fmtDate(account.lastSyncAt)}<br>
+                ${disabled
+                  ? "Désactivé le " + fmtDate(account.disabledAt) + " · suppression prévue le " + fmtDate(account.scheduledDeleteAt)
+                  : "Compte actif · créé le " + fmtDate(account.createdAt)}<br>
+                Rôle : <strong>${account.role === "admin" ? "Administrateur" : "Technicien"}</strong>
+              </div>
+            </div>
+            <div class="btnrow">
+              <span class="pill ${disabled ? "danger" : "ok"}">${disabled ? "Désactivé" : "Actif"}</span>
+              <span class="pill ${account.role === "admin" ? "role-admin" : ""}">${account.role === "admin" ? "Admin" : "Technicien"}</span>
+            </div>
+          </div>
+          <div class="btnrow">
+            <button class="secondary" onclick="prefillReset('${escapeHtml(account.depotNumber)}')">PIN temporaire</button>
+            <button class="secondary" onclick="setAccountRole('${escapeHtml(account.depotNumber)}','${account.role === "admin" ? "technician" : "admin"}')">${account.role === "admin" ? "Passer technicien" : "Passer administrateur"}</button>
+            ${disabled ? `<button class="ok" onclick="prefillRestore('${escapeHtml(account.depotNumber)}')">Restaurer</button>` : ""}
+            <button class="danger" onclick="prefillDelete('${escapeHtml(account.depotNumber)}')">Supprimer</button>
+          </div>
+        </div>`;
+    }).join("") : '<div class="empty">Aucun compte correspondant.</div>';
+  }
+
+  function prefillReset(depot){
+    $("resetDepot").value = depot;
+    $("resetDepot").scrollIntoView({behavior:"smooth",block:"center"});
+  }
+
+  function prefillRestore(depot){
+    $("restoreDepot").value = depot;
+    $("restoreDepot").scrollIntoView({behavior:"smooth",block:"center"});
+  }
+
+  function prefillDelete(depot){
+    $("deleteDepot").value = depot;
+    $("deleteConfirmation").value = "";
+    $("deleteDepot").scrollIntoView({behavior:"smooth",block:"center"});
+  }
+
+  async function resetPin(){
+    const depotNumber = normalize($("resetDepot").value).toUpperCase();
+    const newPin = normalize($("temporaryPin").value);
+    if(!depotNumber){alert("Renseigne le numéro de dépôt.");return}
+    if(!/^\d{4,12}$/.test(newPin)){alert("Le PIN temporaire doit contenir entre 4 et 12 chiffres.");return}
+    if(!confirm("Créer un PIN temporaire pour le dépôt " + depotNumber + " ? Toutes ses anciennes connexions seront révoquées.")) return;
+
+    $("resetNotice").textContent = "Réinitialisation en cours…";
+    try{
+      const data = await api("/api/admin/reset-pin",{adminSecret:adminSecret(),depotNumber,newPin});
+      $("temporaryPin").value = "";
+      $("resetNotice").textContent = data.message || "PIN temporaire créé.";
+      alert("PIN temporaire créé pour " + (data.technicianName || "le technicien") + " — dépôt " + depotNumber + ".\n\nCommunique-lui ce PIN. Il devra le remplacer dès sa connexion.");
+      await loadAccounts();
+    }catch(error){
+      $("resetNotice").textContent = "Échec : " + error.message;
+      alert(error.message);
+    }
+  }
+
+  async function restoreAccount(){
+    const depotNumber = normalize($("restoreDepot").value).toUpperCase();
+    if(!depotNumber){alert("Renseigne le numéro de dépôt.");return}
+    if(!confirm("Restaurer le compte du dépôt " + depotNumber + " ?")) return;
+
+    $("restoreNotice").textContent = "Restauration en cours…";
+    try{
+      const data = await api("/api/admin/restore-account",{adminSecret:adminSecret(),depotNumber});
+      $("restoreNotice").textContent = data.message || "Compte restauré.";
+      alert(data.message || "Compte restauré.");
+      await loadAccounts();
+    }catch(error){
+      $("restoreNotice").textContent = "Échec : " + error.message;
+      alert(error.message);
+    }
+  }
+
+  async function deleteAccount(){
+    const depotNumber = normalize($("deleteDepot").value).toUpperCase();
+    const confirmation = normalize($("deleteConfirmation").value).toUpperCase();
+    if(!depotNumber){alert("Renseigne le numéro de dépôt.");return}
+    if(confirmation !== "SUPPRIMER"){alert("Écris exactement SUPPRIMER pour confirmer.");return}
+    if(!confirm("SUPPRESSION DÉFINITIVE du dépôt " + depotNumber + " ?\n\nLe compte, le stock, l'historique et les sauvegardes seront effacés.")) return;
+    if(!confirm("Dernière confirmation : cette opération est irréversible. Continuer ?")) return;
+
+    $("deleteNotice").textContent = "Suppression en cours…";
+    try{
+      const data = await api("/api/admin/delete-account",{adminSecret:adminSecret(),depotNumber,confirmation:"SUPPRIMER"});
+      $("deleteConfirmation").value = "";
+      $("deleteNotice").textContent = data.message || "Compte supprimé.";
+      alert(data.message || "Compte supprimé.");
+      await loadAccounts();
+    }catch(error){
+      $("deleteNotice").textContent = "Échec : " + error.message;
+      alert(error.message);
+    }
+  }
+
+
+
+  async function searchPartsCatalog(){
+    const query = normalize($("partsCatalogQuery").value);
+    $("partsCatalogNotice").textContent = "Recherche dans le catalogue partagé…";
+    try{
+      const data = await api("/api/admin/catalog/search",{adminSecret:adminSecret(),query,limit:150});
+      partsCatalog = Array.isArray(data.results) ? data.results : [];
+      renderPartsCatalog();
+      $("partsCatalogNotice").textContent = partsCatalog.length
+        ? partsCatalog.length + " fiche(s) trouvée(s)."
+        : "Aucune fiche correspondante.";
+    }catch(error){
+      $("partsCatalogNotice").textContent = "Échec : " + error.message;
+      throw error;
+    }
+  }
+
+  function renderPartsCatalog(){
+    $("partsCatalogCount").textContent = partsCatalog.length + (partsCatalog.length > 1 ? " fiches" : " fiche");
+    $("partsCatalogList").innerHTML = partsCatalog.length ? partsCatalog.map(item=>{
+      const encodedKey = encodeURIComponent(item.referenceKey || "");
+      const official = item.source === "official";
+      const author = item.createdByName || "inconnu";
+      const depot = item.createdByDepot || "";
+      return `
+        <div class="item">
+          <div class="item-head">
+            <div>
+              <div class="item-title">${escapeHtml(item.designation || "Pièce sans désignation")}</div>
+              <div class="item-meta">
+                Référence : <strong>${escapeHtml(item.reference || "—")}</strong><br>
+                Code-barres : ${escapeHtml(item.barcode || "—")}<br>
+                ${item.typePiece ? "Type : " + escapeHtml(item.typePiece) + "<br>" : ""}
+                ${item.brand ? "Marque : " + escapeHtml(item.brand) + "<br>" : ""}
+                ${item.machine ? "Machine : " + escapeHtml(item.machine) + "<br>" : ""}
+                ${item.supplier ? "Fournisseur : " + escapeHtml(item.supplier) + "<br>" : ""}
+                Créée par : ${escapeHtml(author)}${depot ? " (dépôt " + escapeHtml(depot) + ")" : ""} · MAJ ${fmtDate(item.updatedAt)}
+              </div>
+            </div>
+            <span class="pill ${official ? "official" : "community"}">${official ? "Officielle" : "Communautaire"}</span>
+          </div>
+          <div class="btnrow">
+            <button class="secondary" onclick="editPartsCatalogItem('${encodedKey}')">Modifier</button>
+            <button class="${official ? "warn" : "ok"}" onclick="setPartsCatalogSource('${encodedKey}','${official ? "community" : "official"}')">${official ? "Déverrouiller" : "Rendre officielle"}</button>
+            <button class="danger" onclick="deletePartsCatalogItem('${encodedKey}')">Supprimer du catalogue</button>
+          </div>
+        </div>`;
+    }).join("") : '<div class="empty">Aucune fiche catalogue correspondante.</div>';
+  }
+
+  function getPartsCatalogItem(encodedKey){
+    const key = decodeURIComponent(encodedKey || "");
+    return partsCatalog.find(item => item.referenceKey === key) || null;
+  }
+
+  function editPartsCatalogItem(encodedKey){
+    const item = getPartsCatalogItem(encodedKey);
+    if(!item){alert("Fiche catalogue introuvable dans la liste actuelle.");return}
+    editingCatalogReferenceKey = item.referenceKey;
+    $("editCatalogReference").value = item.reference || "";
+    $("editCatalogDesignation").value = item.designation || "";
+    $("editCatalogBarcode").value = item.barcode || "";
+    $("editCatalogType").value = item.typePiece || "";
+    $("editCatalogBrand").value = item.brand || "";
+    $("editCatalogMachine").value = item.machine || "";
+    $("editCatalogSupplier").value = item.supplier || "";
+    $("editCatalogSource").value = item.source === "official" ? "official" : "community";
+    $("partsCatalogEditNotice").textContent = "";
+    updateCatalogEditorStatus();
+    $("partsCatalogEditor").classList.remove("hidden");
+    $("partsCatalogEditor").scrollIntoView({behavior:"smooth",block:"start"});
+  }
+
+  function updateCatalogEditorStatus(){
+    const official = $("editCatalogSource").value === "official";
+    const pill = $("partsCatalogEditorStatus");
+    pill.className = "pill " + (official ? "official" : "community");
+    pill.textContent = official ? "Officielle — verrouillée" : "Communautaire";
+  }
+
+  function closePartsCatalogEditor(){
+    editingCatalogReferenceKey = "";
+    $("partsCatalogEditor").classList.add("hidden");
+    $("partsCatalogEditNotice").textContent = "";
+  }
+
+  function catalogUpdatePayload(item, sourceOverride = ""){
+    return {
+      adminSecret:adminSecret(),
+      referenceKey:item.referenceKey,
+      reference:item.reference,
+      designation:item.designation,
+      barcode:item.barcode || "",
+      typePiece:item.typePiece || "",
+      brand:item.brand || "",
+      machine:item.machine || "",
+      supplier:item.supplier || "",
+      source:sourceOverride || item.source || "community"
+    };
+  }
+
+  async function savePartsCatalogItem(){
+    if(!editingCatalogReferenceKey){alert("Aucune fiche sélectionnée.");return}
+    const designation = normalize($("editCatalogDesignation").value);
+    if(!designation){alert("Renseigne la désignation correcte.");return}
+    const payload = {
+      adminSecret:adminSecret(),
+      referenceKey:editingCatalogReferenceKey,
+      reference:normalize($("editCatalogReference").value),
+      designation,
+      barcode:normalize($("editCatalogBarcode").value),
+      typePiece:normalize($("editCatalogType").value),
+      brand:normalize($("editCatalogBrand").value),
+      machine:normalize($("editCatalogMachine").value),
+      supplier:normalize($("editCatalogSupplier").value),
+      source:$("editCatalogSource").value
+    };
+    $("partsCatalogEditNotice").textContent = "Enregistrement…";
+    try{
+      const data = await api("/api/admin/catalog/update",payload);
+      $("partsCatalogEditNotice").textContent = data.message || "Fiche enregistrée.";
+      toast(data.message || "Fiche catalogue enregistrée.");
+      closePartsCatalogEditor();
+      await searchPartsCatalog();
+    }catch(error){
+      $("partsCatalogEditNotice").textContent = "Échec : " + error.message;
+      alert(error.message);
+    }
+  }
+
+  async function setPartsCatalogSource(encodedKey, source){
+    const item = getPartsCatalogItem(encodedKey);
+    if(!item){alert("Fiche introuvable.");return}
+    const official = source === "official";
+    const message = official
+      ? "Marquer la référence " + item.reference + " comme officielle ? Les techniciens ne pourront plus modifier indirectement cette fiche."
+      : "Repasser la référence " + item.reference + " en communautaire ? Elle pourra de nouveau être complétée par les synchronisations.";
+    if(!confirm(message)) return;
+    try{
+      const data = await api("/api/admin/catalog/update",catalogUpdatePayload(item,source));
+      toast(data.message || "Statut modifié.");
+      await searchPartsCatalog();
+    }catch(error){alert(error.message)}
+  }
+
+  async function deletePartsCatalogItem(encodedKey){
+    const item = getPartsCatalogItem(encodedKey);
+    if(!item){alert("Fiche introuvable.");return}
+    if(!confirm("Supprimer du catalogue partagé la référence " + item.reference + " — " + (item.designation || "sans désignation") + " ?\n\nAucun stock personnel ni aucune photo ne sera supprimé. La fiche pourra réapparaître si cette référence existe encore dans un stock synchronisé.")) return;
+    try{
+      const data = await api("/api/admin/catalog/delete",{adminSecret:adminSecret(),referenceKey:item.referenceKey});
+      toast(data.message || "Fiche supprimée du catalogue.");
+      closePartsCatalogEditor();
+      await searchPartsCatalog();
+    }catch(error){alert(error.message)}
+  }
+
+
+  function fmtBytes(bytes){
+    const value = Number(bytes || 0);
+    if(value < 1024) return value + " o";
+    if(value < 1024**2) return (value/1024).toFixed(1) + " Ko";
+    if(value < 1024**3) return (value/1024**2).toFixed(1) + " Mo";
+    return (value/1024**3).toFixed(2) + " Go";
+  }
+
+  async function setAccountRole(depotNumber, role){
+    const label = role === "admin" ? "administrateur" : "technicien";
+    if(!confirm("Définir le dépôt " + depotNumber + " comme " + label + " ?")) return;
+    try{
+      const data = await api("/api/admin/account-role",{adminSecret:adminSecret(),depotNumber,role});
+      alert(data.message || "Rôle modifié.");
+      await loadAccounts();
+    }catch(error){alert(error.message)}
+  }
+
+  async function loadPhotoDashboard(){
+    $("photoStorageText").textContent = "Chargement des données Google Drive…";
+    try{
+      const data = await api("/api/admin/photos/dashboard",{adminSecret:adminSecret()});
+      photoDashboard = {
+        storage:data.storage || null,
+        proposals:Array.isArray(data.proposals) ? data.proposals : [],
+        catalog:Array.isArray(data.catalog) ? data.catalog : []
+      };
+      renderPhotoStorage();
+      renderProposals();
+      renderCatalog();
+      await loadProposalPreviews();
+    }catch(error){
+      $("photoStorageState").className = "pill danger";
+      $("photoStorageState").textContent = "Indisponible";
+      $("photoStorageText").textContent = error.message;
+      throw error;
+    }
+  }
+
+  function renderPhotoStorage(){
+    const s = photoDashboard.storage;
+    if(!s) return;
+    $("photoStorageUsed").textContent = fmtBytes(s.totalBytes);
+    $("photoOfficialCount").textContent = Number(s.officialCount || 0);
+    $("photoPendingCount").textContent = Number(s.pendingCount || 0);
+    $("photoStorageMeter").style.width = Math.min(100,Number(s.percent || 0)) + "%";
+    $("photoStorageMeter").style.background = s.blocked ? "var(--danger)" : (s.warning ? "var(--warn)" : "var(--ok)");
+    $("photoStorageState").className = "pill " + (s.blocked ? "danger" : (s.warning ? "" : "ok"));
+    $("photoStorageState").textContent = s.blocked ? "Envois bloqués" : (s.warning ? "Attention" : "OK");
+    $("photoStorageText").textContent = fmtBytes(s.totalBytes) + " utilisés sur le compte Google · limite de sécurité 12 Go (" + Number(s.percent || 0) + " %) · catalogue géré par l’application : " + fmtBytes(s.catalogBytes || 0) + ". Les fichiers remplacés ou refusés peuvent encore compter tant qu’ils sont dans la corbeille Google Drive.";
+  }
+
+  function renderProposals(){
+    const proposals = photoDashboard.proposals.filter(p=>p.status === "pending");
+    $("proposalCount").textContent = proposals.length;
+    $("proposalList").innerHTML = proposals.length ? proposals.map(p=>`
+      <div class="item">
+        <div class="photo-admin-grid">
+          <div><img id="proposalPhoto-${p.id}" class="admin-photo" alt="Photo proposée"><div class="mini" id="proposalPhotoStatus-${p.id}">Chargement…</div></div>
+          <div>
+            <div class="item-title">${escapeHtml(p.designation || "Pièce sans nom")}</div>
+            <div class="item-meta">Réf : ${escapeHtml(p.reference || "-")} · Code : ${escapeHtml(p.barcode || "-")}<br>
+            Proposée par <strong>${escapeHtml(p.technicianName || "-")}</strong> · dépôt <strong>${escapeHtml(p.depotNumber || "-")}</strong><br>
+            ${fmtDate(p.createdAt)} · ${fmtBytes(p.sizeBytes)}</div>
+            <div class="btnrow" style="margin-top:12px">
+              <button class="ok" onclick="decideProposal(${p.id},'approve')">Valider</button>
+              <button class="danger" onclick="decideProposal(${p.id},'reject')">Refuser</button>
+            </div>
+          </div>
+        </div>
+      </div>`).join("") : '<div class="empty">Aucune proposition en attente.</div>';
+  }
+
+  async function loadProposalPreviews(){
+    const proposals = photoDashboard.proposals.filter(p=>p.status === "pending");
+    for(const p of proposals){
+      try{
+        const blob = await adminPhotoBlob("/api/admin/photos/preview",{adminSecret:adminSecret(),proposalId:p.id});
+        const url = URL.createObjectURL(blob);
+        const img = $("proposalPhoto-"+p.id);
+        if(img) img.src = url;
+        const status = $("proposalPhotoStatus-"+p.id);
+        if(status) status.textContent = "";
+      }catch(error){
+        const status = $("proposalPhotoStatus-"+p.id);
+        if(status) status.textContent = error.message;
+      }
+    }
+  }
+
+  function renderCatalog(){
+    const q = searchKey($("catalogFilter").value);
+    const list = photoDashboard.catalog.filter(p=>!q || searchKey([p.reference,p.barcode,p.designation].join(" ")).includes(q));
+    $("catalogCount").textContent = list.length;
+    $("catalogList").innerHTML = list.length ? list.map(p=>`
+      <div class="item">
+        <div class="item-head"><div><div class="item-title">${escapeHtml(p.designation || "Pièce sans nom")}</div>
+        <div class="item-meta">Réf : ${escapeHtml(p.reference || "-")} · Code : ${escapeHtml(p.barcode || "-")}<br>
+        Version ${Number(p.version || 1)} · ${fmtBytes(p.sizeBytes)} · MAJ ${fmtDate(p.updatedAt)}</div></div>
+        <button class="danger" onclick="deleteOfficialPhoto('${escapeHtml(p.referenceKey)}')">Supprimer</button></div>
+      </div>`).join("") : '<div class="empty">Aucune photo officielle correspondante.</div>';
+  }
+
+  async function decideProposal(proposalId, decision){
+    const action = decision === "approve" ? "valider" : "refuser";
+    if(!confirm(action.charAt(0).toUpperCase()+action.slice(1)+" cette proposition ?")) return;
+    try{
+      const data = await api("/api/admin/photos/decision",{adminSecret:adminSecret(),proposalId,decision});
+      toast(data.message || "Proposition traitée.");
+      await loadPhotoDashboard();
+    }catch(error){alert(error.message)}
+  }
+
+  async function deleteOfficialPhoto(referenceKey){
+    if(!confirm("Supprimer cette photo officielle ? La fiche de stock restera intacte.")) return;
+    try{
+      const data = await api("/api/admin/photos/delete-official",{adminSecret:adminSecret(),referenceKey});
+      toast(data.message || "Photo supprimée.");
+      await loadPhotoDashboard();
+    }catch(error){alert(error.message)}
+  }
+
+  async function uploadOfficialPhoto(){
+    const reference = normalize($("officialReference").value);
+    const barcode = normalize($("officialBarcode").value);
+    const designation = normalize($("officialDesignation").value);
+    const file = $("officialPhotoFile").files[0];
+    if(!reference && !barcode){alert("Renseigne une référence ou un code-barres.");return}
+    if(!file){alert("Sélectionne une photo.");return}
+    $("officialUploadNotice").textContent = "Compression et envoi…";
+    try{
+      const compressed = await compressImageForCloud(file);
+      const form = new FormData();
+      form.append("adminSecret",adminSecret());
+      form.append("reference",reference);
+      form.append("barcode",barcode);
+      form.append("designation",designation);
+      form.append("file",compressed,"photo.webp");
+      const data = await apiForm("/api/admin/photos/upload-official",form);
+      $("officialPhotoFile").value = "";
+      $("officialUploadNotice").textContent = data.message || "Photo envoyée.";
+      toast(data.message || "Photo envoyée.");
+      await loadPhotoDashboard();
+    }catch(error){$("officialUploadNotice").textContent = "Échec : " + error.message;alert(error.message)}
+  }
+
+  async function apiForm(path, form){
+    const response = await fetch(WORKER_URL + path,{method:"POST",body:form});
+    const raw = await response.text();
+    let data={};try{data=raw?JSON.parse(raw):{}}catch{data={message:raw}}
+    if(!response.ok) throw new Error(data.error || data.message || ("Erreur " + response.status));
+    return data;
+  }
+
+  async function adminPhotoBlob(path, body){
+    const response = await fetch(WORKER_URL + path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    if(!response.ok){const raw=await response.text();let data={};try{data=JSON.parse(raw)}catch{};throw new Error(data.error || "Photo inaccessible")}
+    return response.blob();
+  }
+
+  async function compressImageForCloud(file){
+    const bitmap = await createImageBitmap(file);
+    let width = bitmap.width, height = bitmap.height;
+    const ratio = Math.min(1,1200/Math.max(width,height));
+    width=Math.max(1,Math.round(width*ratio));height=Math.max(1,Math.round(height*ratio));
+    const canvas=document.createElement("canvas");canvas.width=width;canvas.height=height;
+    canvas.getContext("2d").drawImage(bitmap,0,0,width,height);bitmap.close?.();
+    for(const quality of [.82,.74,.66,.58,.50]){
+      const blob = await new Promise(resolve=>canvas.toBlob(resolve,"image/webp",quality));
+      if(blob && blob.size <= 1_000_000) return blob;
+    }
+    const fallback = await new Promise(resolve=>canvas.toBlob(resolve,"image/jpeg",.58));
+    if(!fallback || fallback.size > 1_000_000) throw new Error("Photo encore trop volumineuse après compression.");
+    return fallback;
+  }
+
+
+  function showAdminView(viewName){
+    document.querySelectorAll(".admin-view").forEach(view=>{
+      view.classList.toggle("active", view.id === "view-" + viewName);
+    });
+    document.querySelectorAll(".nav-tile").forEach(button=>{
+      button.classList.toggle("selected", button.dataset.view === viewName);
+    });
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
+
+</script>
+</body>
+</html>
