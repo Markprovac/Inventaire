@@ -147,7 +147,7 @@
       La <strong>référence</strong> est la clé unique. Corriger ou supprimer une fiche ici ne modifie aucun stock personnel. Une fiche marquée <strong>Officielle</strong> est verrouillée contre les synchronisations des techniciens.
     </div>
     <div class="catalog-search-row">
-      <input id="partsCatalogQuery" placeholder="Recherche par référence, désignation ou code-barres…" onkeydown="if(event.key==='Enter') searchPartsCatalog()">
+      <input id="partsCatalogQuery" placeholder="Recherche par référence, désignation, code-barres ou fournisseur…" onkeydown="if(event.key==='Enter') searchPartsCatalog()">
       <button class="ok" onclick="searchPartsCatalog()">Rechercher</button>
     </div>
     <div id="partsCatalogNotice" class="mini" style="margin:10px 0"></div>
@@ -169,6 +169,7 @@
       <div class="field"><label>Type de pièce</label><input id="editCatalogType" placeholder="Facultatif"></div>
       <div class="field"><label>Marque</label><input id="editCatalogBrand" placeholder="Facultatif"></div>
       <div class="field"><label>Machine / équipement</label><input id="editCatalogMachine" placeholder="Facultatif"></div>
+      <div class="field"><label>Fournisseur</label><input id="editCatalogSupplier" placeholder="Facultatif"></div>
       <div class="field">
         <label>Statut de la fiche</label>
         <select id="editCatalogSource" onchange="updateCatalogEditorStatus()">
@@ -495,6 +496,7 @@
                 ${item.typePiece ? "Type : " + escapeHtml(item.typePiece) + "<br>" : ""}
                 ${item.brand ? "Marque : " + escapeHtml(item.brand) + "<br>" : ""}
                 ${item.machine ? "Machine : " + escapeHtml(item.machine) + "<br>" : ""}
+                ${item.supplier ? "Fournisseur : " + escapeHtml(item.supplier) + "<br>" : ""}
                 Créée par : ${escapeHtml(author)}${depot ? " (dépôt " + escapeHtml(depot) + ")" : ""} · MAJ ${fmtDate(item.updatedAt)}
               </div>
             </div>
@@ -524,6 +526,7 @@
     $("editCatalogType").value = item.typePiece || "";
     $("editCatalogBrand").value = item.brand || "";
     $("editCatalogMachine").value = item.machine || "";
+    $("editCatalogSupplier").value = item.supplier || "";
     $("editCatalogSource").value = item.source === "official" ? "official" : "community";
     $("partsCatalogEditNotice").textContent = "";
     updateCatalogEditorStatus();
@@ -554,6 +557,7 @@
       typePiece:item.typePiece || "",
       brand:item.brand || "",
       machine:item.machine || "",
+      supplier:item.supplier || "",
       source:sourceOverride || item.source || "community"
     };
   }
@@ -571,6 +575,7 @@
       typePiece:normalize($("editCatalogType").value),
       brand:normalize($("editCatalogBrand").value),
       machine:normalize($("editCatalogMachine").value),
+      supplier:normalize($("editCatalogSupplier").value),
       source:$("editCatalogSource").value
     };
     $("partsCatalogEditNotice").textContent = "Enregistrement…";

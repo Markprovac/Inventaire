@@ -1611,6 +1611,7 @@
       if(match.barcode) lines.push("Code-barres : " + match.barcode);
       if(match.brand) lines.push("Marque : " + match.brand);
       if(match.machine) lines.push("Machine : " + match.machine);
+      if(match.supplier) lines.push("Fournisseur : " + match.supplier);
       return lines.join("\n");
     }
 
@@ -1622,6 +1623,7 @@
       if(match.typePiece) $("fType").value = match.typePiece;
       if(match.brand) $("fBrand").value = match.brand;
       if(match.machine) $("fMachine").value = match.machine;
+      if(match.supplier) $("fSupplier").value = match.supplier;
       catalogAcceptedReferenceKey = catalogReferenceKey(match.reference);
       hideCatalogDesignationSuggestions();
       const hint = $("catalogReferenceHint");
@@ -1638,6 +1640,7 @@
         typePiece: match.typePiece || extras.typePiece || "",
         brand: match.brand || extras.brand || "",
         machine: match.machine || extras.machine || "",
+        supplier: match.supplier || extras.supplier || "",
         notes: extras.notes || "",
         qty: extras.qty ?? 0,
         minQty: extras.minQty ?? 0,
@@ -1708,6 +1711,7 @@
                   ${match.barcode ? "<br>Code-barres : " + escapeHtml(match.barcode) : ""}
                   ${match.brand ? "<br>Marque : " + escapeHtml(match.brand) : ""}
                   ${match.machine ? " · " + escapeHtml(match.machine) : ""}
+                  ${match.supplier ? "<br>Fournisseur : " + escapeHtml(match.supplier) : ""}
                 </div>
               </div>
               <div class="btnrow">
@@ -3102,6 +3106,222 @@
       renderCloudPage();
     }
 
+    const CATALOG_SYNC_FIELDS = [
+      {key:"designation", label:"Désignation", format:value=>upperDesignation(value)},
+      {key:"barcode", label:"Code-barres", format:value=>normalize(value)},
+      {key:"typePiece", label:"Type de pièce", format:value=>normalize(value)},
+      {key:"brand", label:"Marque", format:value=>normalize(value)},
+      {key:"machine", label:"Machine / équipement", format:value=>normalize(value)},
+      {key:"supplier", label:"Fournisseur", format:value=>normalize(value)}
+    ];
+
+    function catalogUpdateState(){
+      db.settings = db.settings || {};
+      if(!db.settings.catalogUpdateState || typeof db.settings.catalogUpdateState !== "object"){
+        db.settings.catalogUpdateState = {};
+      }
+      return db.settings.catalogUpdateState;
+    }
+
+    function catalogVersionToken(match){
+      return match?.updatedAt || "";
+    }
+
+    function catalogCompareValue(value){
+      return normalize(value).replace(/\s+/g," ").trim();
+    }
+
+    function catalogDisplayValue(value){
+      const text = normalize(value);
+      return text || "(vide)";
+    }
+
+    function buildCatalogUpdate(part, match){
+      if(!part || !match) return null;
+      const referenceKey = catalogReferenceKey(part.reference);
+      if(!referenceKey || referenceKey !== catalogReferenceKey(match.referenceKey || match.reference)) return null;
+      const changes = [];
+
+      for(const field of CATALOG_SYNC_FIELDS){
+        const catalogueValue = field.format(match[field.key]);
+        const localValue = field.format(part[field.key]);
+        // Le catalogue ne vide jamais une information déjà présente dans le stock personnel.
+        if(!normalize(catalogueValue)) continue;
+        if(catalogCompareValue(localValue) === catalogCompareValue(catalogueValue)) continue;
+        changes.push({
+          key:field.key,
+          label:field.label,
+          oldValue:localValue,
+          newValue:catalogueValue
+        });
+      }
+
+      const state = catalogUpdateState()[referenceKey] || {};
+      const photoVersion = Number(match.photoVersion || 0);
+      const photoChanged = Boolean(match.hasOfficialPhoto && photoVersion && Number(state.photoVersion || 0) !== photoVersion);
+      if(!changes.length && !photoChanged) return null;
+
+      return {
+        part,
+        match,
+        referenceKey,
+        changes,
+        photoChanged,
+        token:catalogVersionToken(match)
+      };
+    }
+
+    async function loadCatalogUpdatesForStock(){
+      if(!cloudConfigured() || !navigator.onLine || !db.parts.length) return [];
+      const references = [...new Set(db.parts.map(part=>normalize(part.reference)).filter(Boolean))];
+      const matches = [];
+      for(let index=0; index<references.length; index+=20){
+        const chunk = references.slice(index,index+20);
+        const found = await lookupCatalogReferences(chunk,true);
+        matches.push(...found);
+      }
+      const byKey = new Map(matches.map(match=>[catalogReferenceKey(match.referenceKey || match.reference),match]));
+      return db.parts
+        .map(part=>buildCatalogUpdate(part,byKey.get(catalogReferenceKey(part.reference))))
+        .filter(Boolean);
+    }
+
+    function catalogUpdateMessage(update){
+      const lines = [
+        "Référence : " + (update.part.reference || update.match.reference || "—"),
+        "Pièce actuelle : " + (update.part.designation || "Pièce sans nom"),
+        ""
+      ];
+      update.changes.forEach(change=>{
+        lines.push(change.label + " :");
+        lines.push("  Ancien : " + catalogDisplayValue(change.oldValue));
+        lines.push("  Catalogue : " + catalogDisplayValue(change.newValue));
+      });
+      if(update.photoChanged){
+        lines.push("Photo officielle : une nouvelle version est disponible et sera affichée automatiquement.");
+      }
+      lines.push("");
+      lines.push("La quantité, le stock minimum, l’emplacement, le prix et les notes ne seront pas modifiés.");
+      return lines.join("\n");
+    }
+
+    function refreshSharedPhotoCaches(part){
+      try{
+        const photoKey = sharedPartKey(part);
+        if(!photoKey) return;
+        sharedPhotoInfoCache?.delete(photoKey);
+        for(const [key,url] of sharedPhotoBlobCache?.entries?.() || []){
+          if(key.startsWith(photoKey + ":")){
+            URL.revokeObjectURL(url);
+            sharedPhotoBlobCache.delete(key);
+          }
+        }
+      }catch(error){ console.warn("Actualisation du cache photo",error); }
+    }
+
+    async function checkCatalogUpdates(options = {}){
+      const interactive = Boolean(options.interactive);
+      let updates;
+      try{
+        updates = await loadCatalogUpdatesForStock();
+      }catch(error){
+        console.warn("Vérification des mises à jour catalogue",error);
+        if(interactive) toast("Catalogue momentanément indisponible");
+        return {available:0,applied:0,ignored:0};
+      }
+
+      const state = catalogUpdateState();
+      let refreshedPhotos = 0;
+      updates.forEach(update=>{
+        if(!update.photoChanged) return;
+        refreshSharedPhotoCaches(update.part);
+        state[update.referenceKey] = {
+          ...(state[update.referenceKey] || {}),
+          photoVersion:Number(update.match.photoVersion || 0)
+        };
+        refreshedPhotos++;
+      });
+      updates = updates.filter(update=>update.changes.length && state[update.referenceKey]?.ignoredVersion !== update.token);
+      if(!updates.length){
+        if(refreshedPhotos){
+          localStorage.setItem(STORAGE_KEY,JSON.stringify(db));
+          toast(refreshedPhotos + " photo" + (refreshedPhotos>1?"s":"") + " officielle" + (refreshedPhotos>1?"s":"") + " actualisée" + (refreshedPhotos>1?"s":""));
+          if(currentView === "detail" && currentPartId) showDetail(currentPartId);
+        }
+        return {available:0,applied:0,ignored:0,refreshedPhotos};
+      }
+
+      if(!interactive){
+        const unseen = updates.filter(update=>state[update.referenceKey]?.notifiedVersion !== update.token);
+        unseen.forEach(update=>{
+          state[update.referenceKey] = {
+            ...(state[update.referenceKey] || {}),
+            notifiedVersion:update.token
+          };
+        });
+        if(unseen.length){
+          localStorage.setItem(STORAGE_KEY,JSON.stringify(db));
+          toast(unseen.length + " mise" + (unseen.length>1?"s":"") + " à jour du catalogue disponible" + (unseen.length>1?"s":""));
+        }
+        return {available:updates.length,applied:0,ignored:0};
+      }
+
+      const review = await appConfirm(
+        updates.length + " fiche" + (updates.length>1?"s":"") + " de ton stock " + (updates.length>1?"ont":"a") + " une mise à jour dans le catalogue partagé.\n\nVeux-tu les examiner maintenant ?",
+        {title:"Mises à jour du catalogue",type:"info",confirmText:"Examiner",cancelText:"Plus tard"}
+      );
+      if(!review) return {available:updates.length,applied:0,ignored:0};
+
+      let applied = 0;
+      let ignored = 0;
+      let changedLocalData = false;
+      for(const update of updates){
+        const accept = await appConfirm(
+          catalogUpdateMessage(update),
+          {title:"Mettre à jour cette fiche ?",type:update.match.source === "official" ? "success" : "info",confirmText:"Mettre à jour",cancelText:"Ignorer cette version"}
+        );
+        const previousState = state[update.referenceKey] || {};
+        if(accept){
+          update.changes.forEach(change=>{
+            update.part[change.key] = change.newValue;
+          });
+          if(update.changes.length){
+            update.part.updatedAt = nowISO();
+            changedLocalData = true;
+          }
+          state[update.referenceKey] = {
+            ...previousState,
+            appliedVersion:update.token,
+            ignoredVersion:"",
+            notifiedVersion:update.token
+          };
+          applied++;
+        }else{
+          state[update.referenceKey] = {
+            ...previousState,
+            ignoredVersion:update.token,
+            notifiedVersion:update.token
+          };
+          ignored++;
+        }
+      }
+
+      if(changedLocalData) save();
+      else localStorage.setItem(STORAGE_KEY,JSON.stringify(db));
+      if(applied){
+        catalogLookupCache.clear();
+        renderHome();
+        if(currentView === "inventory") renderInventory();
+        if(currentView === "detail" && currentPartId) showDetail(currentPartId);
+      }
+      if(applied){
+        toast(applied + " mise" + (applied>1?"s":"") + " à jour appliquée" + (applied>1?"s":""));
+      }else if(ignored){
+        toast(ignored + " mise" + (ignored>1?"s":"") + " à jour ignorée" + (ignored>1?"s":""));
+      }
+      return {available:updates.length,applied,ignored};
+    }
+
     function cloudSnapshotPayload(){
       return {
         version: 1,
@@ -3168,6 +3388,7 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
         setCloudStatus("Stock synchronisé", "");
         if(!silent) toast("Stock envoyé dans le cloud");
+        await checkCatalogUpdates({interactive:!silent});
         return true;
       }catch(e){
         console.error(e);
@@ -3210,7 +3431,8 @@
           technicianName: db.settings.technicianName,
           technicianDepot: db.settings.technicianDepot,
           mustChangePin: db.settings.mustChangePin,
-          userRole: db.settings.userRole || "technician"
+          userRole: db.settings.userRole || "technician",
+          catalogUpdateState: db.settings.catalogUpdateState || {}
         };
         db = {
           parts:safeParts,
@@ -3227,6 +3449,7 @@
         setCloudStatus("Stock récupéré depuis le cloud", "");
         toast("Stock du cloud récupéré");
         renderHome();
+        await checkCatalogUpdates({interactive:confirmReplace});
         return true;
       }catch(e){
         setCloudStatus(e.message, "danger");
