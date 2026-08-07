@@ -249,6 +249,13 @@
     .pill.danger{color:#fecaca;border-color:rgba(239,68,68,.5)}
     .pill.official{color:#bbf7d0;border-color:rgba(34,197,94,.55)}
     .pill.community{color:#fde68a;border-color:rgba(245,158,11,.55)}
+    .pill.pending{color:#fde68a;border-color:rgba(245,158,11,.55);background:rgba(245,158,11,.08)}
+    .catalog-proposal-change{border:1px solid var(--line);background:#0b1220;border-radius:12px;padding:9px 10px;margin-top:7px}
+    .catalog-proposal-change strong{display:block;margin-bottom:4px}
+    .catalog-proposal-old,.catalog-proposal-new{font-size:12px;line-height:1.4;overflow-wrap:anywhere}
+    .catalog-proposal-old{color:var(--muted)}
+    .catalog-proposal-new{color:#e0f2fe}
+    .catalog-proposal-new b{color:#bbf7d0}
     .role-admin{color:#bae6fd;border-color:rgba(56,189,248,.55)}
 
     .list{display:flex;flex-direction:column;gap:10px}
@@ -426,6 +433,7 @@
         <span>
           <span class="nav-tile-title">Catalogue</span>
           <span class="nav-tile-text">Recherche, correction et gestion du catalogue partagé de pièces détachées.</span>
+          <span class="pill pending hidden" id="catalogProposalDashboardBadge" style="margin-top:8px;width:max-content">0 proposition</span>
         </span>
       </button>
 
@@ -483,13 +491,27 @@
       <button class="back-button" onclick="showAdminView('dashboard')">← Tableau de bord</button>
     </div>
 
+    <div class="card" id="catalogChangeProposalCard">
+      <div class="section-title">
+        <h2>📝 Modifications proposées par les techniciens</h2>
+        <span class="pill pending" id="catalogChangeProposalCount">0 proposition</span>
+      </div>
+      <div class="notice">
+        Les modifications d'un technicien restent dans <strong>son stock personnel</strong>. Elles ne deviennent communes qu'après ta validation ici. En cas de refus, son stock personnel n'est pas modifié.
+      </div>
+      <div class="btnrow" style="margin-bottom:12px">
+        <button class="secondary" onclick="loadCatalogChangeProposals()">Actualiser les propositions</button>
+      </div>
+      <div id="catalogChangeProposalList" class="list"><div class="empty">Actualise les données pour afficher les propositions.</div></div>
+    </div>
+
     <div class="card" id="partsCatalogCard">
       <div class="section-title">
         <h2>🧩 Catalogue de pièces détachées</h2>
         <span class="pill" id="partsCatalogCount">0 fiche</span>
       </div>
       <div class="notice">
-        La <strong>référence</strong> est la clé unique. Corriger ou supprimer une fiche ici ne modifie aucun stock personnel. Une fiche marquée <strong>Officielle</strong> est verrouillée contre les synchronisations des techniciens.
+        La <strong>référence</strong> est la clé unique. Corriger ou supprimer une fiche ici ne modifie aucun stock personnel. Les techniciens ne modifient plus directement le catalogue : leurs changements arrivent ci-dessus comme propositions. Une fiche validée devient <strong>Officielle</strong>.
       </div>
       <div class="catalog-search-row">
         <input id="partsCatalogQuery" placeholder="Recherche par référence, désignation, code-barres ou fournisseur…" onkeydown="if(event.key==='Enter') searchPartsCatalog()">
@@ -608,6 +630,7 @@
   let accounts = [];
   let photoDashboard = {storage:null,proposals:[],catalog:[]};
   let partsCatalog = [];
+  let catalogChangeProposals = [];
   let editingCatalogReferenceKey = "";
 
   const $ = id => document.getElementById(id);
@@ -700,6 +723,7 @@
       toast("Liste actualisée");
       loadPhotoDashboard().catch(()=>{});
       searchPartsCatalog().catch(()=>{});
+      loadCatalogChangeProposals().catch(()=>{});
     }catch(error){
       $("globalNotice").textContent = "Échec : " + error.message;
       alert("Impossible de charger les comptes : " + error.message);
@@ -817,6 +841,98 @@
   }
 
 
+
+  const CATALOG_CHANGE_LABELS = {
+    barcode:"Code-barres",
+    designation:"Désignation",
+    typePiece:"Type de pièce",
+    brand:"Marque",
+    machine:"Machine / équipement",
+    supplier:"Fournisseur"
+  };
+
+  function catalogProposalDisplay(value){
+    const text = normalize(value);
+    return text || "(vide)";
+  }
+
+  async function loadCatalogChangeProposals(){
+    try{
+      const data = await api("/api/admin/catalog/proposals",{adminSecret:adminSecret()});
+      catalogChangeProposals = Array.isArray(data.proposals) ? data.proposals : [];
+      renderCatalogChangeProposals();
+    }catch(error){
+      const list = $("catalogChangeProposalList");
+      if(list) list.innerHTML = '<div class="empty">Impossible de charger les propositions : ' + escapeHtml(error.message) + '</div>';
+      throw error;
+    }
+  }
+
+  function renderCatalogChangeProposals(){
+    const count = catalogChangeProposals.length;
+    $("catalogChangeProposalCount").textContent = count + (count > 1 ? " propositions" : " proposition");
+    const badge = $("catalogProposalDashboardBadge");
+    if(badge){
+      badge.textContent = count + (count > 1 ? " propositions" : " proposition");
+      badge.classList.toggle("hidden", count === 0);
+    }
+
+    $("catalogChangeProposalList").innerHTML = count ? catalogChangeProposals.map(proposal=>{
+      const current = proposal.current || null;
+      const proposed = proposal.proposed || {};
+      const changedFields = Array.isArray(proposal.changedFields) ? proposal.changedFields : [];
+      const changesHtml = changedFields.map(key=>{
+        const label = CATALOG_CHANGE_LABELS[key] || key;
+        const oldValue = current ? current[key] : "";
+        const newValue = proposed[key];
+        return `<div class="catalog-proposal-change">
+          <strong>${escapeHtml(label)}</strong>
+          <div class="catalog-proposal-old">Actuel : ${escapeHtml(current ? catalogProposalDisplay(oldValue) : "Nouvelle fiche — aucune valeur dans le catalogue")}</div>
+          <div class="catalog-proposal-new">Proposé : <b>${escapeHtml(catalogProposalDisplay(newValue))}</b></div>
+        </div>`;
+      }).join("");
+      const sourceLabel = current ? (current.source === "official" ? "Fiche actuelle officielle" : "Fiche actuelle communautaire") : "Nouvelle référence";
+      return `<div class="item">
+        <div class="item-head">
+          <div style="min-width:0">
+            <div class="item-title">${escapeHtml(proposed.designation || proposed.reference || "Proposition de fiche")}</div>
+            <div class="item-meta">
+              Référence : <strong>${escapeHtml(proposed.reference || "—")}</strong><br>
+              Proposée par <strong>${escapeHtml(proposal.technicianName || "—")}</strong> · dépôt <strong>${escapeHtml(proposal.depotNumber || "—")}</strong><br>
+              ${escapeHtml(sourceLabel)} · proposition du ${fmtDate(proposal.updatedAt)}
+            </div>
+          </div>
+          <span class="pill pending">À valider</span>
+        </div>
+        ${changesHtml || '<div class="mini">Aucune différence détaillée disponible.</div>'}
+        <div class="btnrow" style="margin-top:12px">
+          <button class="ok" onclick="decideCatalogChangeProposal(${Number(proposal.id)},'approve')">Accepter et rendre officielle</button>
+          <button class="danger" onclick="decideCatalogChangeProposal(${Number(proposal.id)},'reject')">Refuser</button>
+        </div>
+      </div>`;
+    }).join("") : '<div class="empty">Aucune modification de fiche en attente de validation.</div>';
+  }
+
+  async function decideCatalogChangeProposal(proposalId, decision){
+    const proposal = catalogChangeProposals.find(item=>Number(item.id) === Number(proposalId));
+    if(!proposal){alert("Proposition introuvable.");return}
+    const reference = proposal.proposed?.reference || proposal.referenceKey || "cette fiche";
+    const approve = decision === "approve";
+    const message = approve
+      ? "Accepter la proposition pour " + reference + " ?\n\nLe catalogue partagé sera mis à jour et la fiche deviendra officielle. Les autres techniciens possédant cette référence pourront recevoir cette nouvelle version."
+      : "Refuser la proposition pour " + reference + " ?\n\nLe catalogue partagé restera inchangé. Le technicien conservera sa modification uniquement dans son stock personnel.";
+    if(!confirm(message)) return;
+    try{
+      const data = await api("/api/admin/catalog/proposal-decision",{
+        adminSecret:adminSecret(),
+        proposalId:Number(proposalId),
+        decision
+      });
+      toast(data.message || "Proposition traitée.");
+      await loadCatalogChangeProposals();
+      await searchPartsCatalog();
+    }catch(error){alert(error.message)}
+  }
 
   async function searchPartsCatalog(){
     const query = normalize($("partsCatalogQuery").value);
@@ -953,7 +1069,7 @@
     const official = source === "official";
     const message = official
       ? "Marquer la référence " + item.reference + " comme officielle ? Les techniciens ne pourront plus modifier indirectement cette fiche."
-      : "Repasser la référence " + item.reference + " en communautaire ? Elle pourra de nouveau être complétée par les synchronisations.";
+      : "Repasser la référence " + item.reference + " en communautaire ? Les techniciens pourront toujours proposer des corrections, mais aucune synchronisation ne la modifiera sans validation administrateur.";
     if(!confirm(message)) return;
     try{
       const data = await api("/api/admin/catalog/update",catalogUpdatePayload(item,source));
@@ -965,7 +1081,7 @@
   async function deletePartsCatalogItem(encodedKey){
     const item = getPartsCatalogItem(encodedKey);
     if(!item){alert("Fiche introuvable.");return}
-    if(!confirm("Supprimer du catalogue partagé la référence " + item.reference + " — " + (item.designation || "sans désignation") + " ?\n\nAucun stock personnel ni aucune photo ne sera supprimé. La fiche pourra réapparaître si cette référence existe encore dans un stock synchronisé.")) return;
+    if(!confirm("Supprimer du catalogue partagé la référence " + item.reference + " — " + (item.designation || "sans désignation") + " ?\n\nAucun stock personnel ni aucune photo ne sera supprimé. Elle ne réapparaîtra dans le catalogue qu’après une nouvelle validation administrateur.")) return;
     try{
       const data = await api("/api/admin/catalog/delete",{adminSecret:adminSecret(),referenceKey:item.referenceKey});
       toast(data.message || "Fiche supprimée du catalogue.");
@@ -1159,6 +1275,9 @@
     document.querySelectorAll(".nav-tile").forEach(button=>{
       button.classList.toggle("selected", button.dataset.view === viewName);
     });
+    if(viewName === "catalogue" && normalize($("adminSecret")?.value).length >= 32){
+      loadCatalogChangeProposals().catch(()=>{});
+    }
     window.scrollTo({top:0, behavior:"smooth"});
   }
 

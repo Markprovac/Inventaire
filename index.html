@@ -3577,6 +3577,42 @@
       };
     }
 
+    async function loadOwnCatalogProposalMap(){
+      const map = new Map();
+      if(!cloudConfigured() || !navigator.onLine) return map;
+      try{
+        const data = await cloudFetch("/api/catalog/proposals/mine", {method:"GET"});
+        const proposals = Array.isArray(data.proposals) ? data.proposals : [];
+        proposals.forEach(proposal=>{
+          const key = catalogReferenceKey(proposal.referenceKey || proposal.proposed?.reference || "");
+          if(key) map.set(key, proposal);
+        });
+      }catch(error){
+        // Compatibilité pendant un déploiement progressif : si l'ancien Worker est encore actif,
+        // les mises à jour du catalogue continuent simplement comme avant.
+        console.warn("Lecture des propositions personnelles impossible", error);
+      }
+      return map;
+    }
+
+    function suppressOwnProposalChanges(update, proposal){
+      if(!update || !proposal || !["pending","rejected"].includes(proposal.status)) return update;
+      const changedFields = Array.isArray(proposal.changedFields) ? proposal.changedFields : [];
+      const proposed = proposal.proposed || {};
+      if(!changedFields.length) return update;
+
+      update.changes = update.changes.filter(change=>{
+        if(!changedFields.includes(change.key)) return true;
+        const field = CATALOG_SYNC_FIELDS.find(item=>item.key === change.key);
+        const localValue = field ? field.format(update.part[change.key]) : normalize(update.part[change.key]);
+        const proposedValue = field ? field.format(proposed[change.key]) : normalize(proposed[change.key]);
+        // Tant que le technicien conserve exactement la valeur qu'il a proposée (en attente ou refusée),
+        // on ne lui demande pas de l'écraser avec la version générale du catalogue.
+        return catalogCompareValue(localValue) !== catalogCompareValue(proposedValue);
+      });
+      return update;
+    }
+
     async function loadCatalogUpdatesForStock(){
       if(!cloudConfigured() || !navigator.onLine || !db.parts.length) return [];
       const references = [...new Set(db.parts.map(part=>normalize(part.reference)).filter(Boolean))];
@@ -3587,8 +3623,17 @@
         matches.push(...found);
       }
       const byKey = new Map(matches.map(match=>[catalogReferenceKey(match.referenceKey || match.reference),match]));
+      const ownProposalByKey = await loadOwnCatalogProposalMap();
+
       return db.parts
-        .map(part=>buildCatalogUpdate(part,byKey.get(catalogReferenceKey(part.reference))))
+        .map(part=>{
+          const referenceKey = catalogReferenceKey(part.reference);
+          let update = buildCatalogUpdate(part,byKey.get(referenceKey));
+          if(!update) return null;
+          update = suppressOwnProposalChanges(update, ownProposalByKey.get(referenceKey));
+          if(!update.changes.length && !update.photoChanged) return null;
+          return update;
+        })
         .filter(Boolean);
     }
 
@@ -3607,7 +3652,7 @@
         lines.push("Photo officielle : une nouvelle version est disponible et sera affichée automatiquement.");
       }
       lines.push("");
-      lines.push("La quantité, le stock minimum, l’emplacement, le prix et les notes ne seront pas modifiés.");
+      lines.push("La quantité, le stock minimum, l’emplacement, le prix et les notes ne seront pas modifiés. Une modification personnelle en attente ou refusée par l’administrateur reste également conservée sur ce téléphone.");
       return lines.join("\n");
     }
 
