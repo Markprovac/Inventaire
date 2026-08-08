@@ -497,7 +497,7 @@
         <span class="pill pending" id="catalogChangeProposalCount">0 proposition</span>
       </div>
       <div class="notice">
-        Les modifications d'un technicien restent dans <strong>son stock personnel</strong>. Elles ne deviennent communes qu'après ta validation ici. En cas de refus, son stock personnel n'est pas modifié.
+        Les modifications d'un technicien restent dans <strong>son stock personnel</strong>. Elles ne deviennent communes qu'après ta validation ici. Quand tu valides une proposition, elle devient la version officielle et <strong>toutes les autres propositions en attente pour la même référence sont automatiquement clôturées</strong> : les identiques sont validées avec elle, les différentes sont écartées. En cas de refus, le stock personnel du technicien n'est pas modifié.
       </div>
       <div class="btnrow" style="margin-bottom:12px">
         <button class="secondary" onclick="loadCatalogChangeProposals()">Actualiser les propositions</button>
@@ -919,7 +919,7 @@
     const reference = proposal.proposed?.reference || proposal.referenceKey || "cette fiche";
     const approve = decision === "approve";
     const message = approve
-      ? "Accepter la proposition pour " + reference + " ?\n\nLe catalogue partagé sera mis à jour et la fiche deviendra officielle. Les autres techniciens possédant cette référence pourront recevoir cette nouvelle version."
+      ? "Accepter la proposition pour " + reference + " ?\n\nLe catalogue partagé sera mis à jour et la fiche deviendra officielle. Toutes les autres propositions encore en attente pour cette même référence seront automatiquement clôturées : les propositions identiques seront validées ensemble et les différentes seront écartées. Les techniciens possédant déjà cette référence pourront ensuite recevoir la version officielle."
       : "Refuser la proposition pour " + reference + " ?\n\nLe catalogue partagé restera inchangé. Le technicien conservera sa modification uniquement dans son stock personnel.";
     if(!confirm(message)) return;
     try{
