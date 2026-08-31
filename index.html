@@ -975,7 +975,7 @@
       </div>
       <div class="card">
         <h2 style="margin-top:0">Synchronisation de mon stock</h2>
-        <p class="muted">Chaque modification reste d'abord enregistrée sur le téléphone, puis elle est envoyée automatiquement vers ton stock cloud. Les photos restent dans ton téléphone.</p>
+        <p class="muted">Chaque modification reste d'abord enregistrée sur le téléphone, puis elle est envoyée automatiquement vers ton stock cloud. Les photos prises dans une fiche restent aussi sur le téléphone et sont envoyées automatiquement : photo officielle pour l’administrateur, proposition à valider pour un technicien.</p>
         <div class="btnrow">
           <button onclick="pushCloudSnapshot(false)">⬆️ Envoyer ce téléphone vers le cloud</button>
           <button class="secondary" onclick="pullCloudSnapshot(true)">⬇️ Récupérer mon stock du cloud</button>
@@ -1123,6 +1123,8 @@
     let scanCandidateCount = 0;
     const SCAN_REQUIRED_READS = 3;
     let tempPhotoData = "";
+    let tempPhotoChanged = false;
+    let pendingPhotoSyncRunning = false;
     let ocrImageData = "";
     let ocrCanvasImage = null;
     let ocrSelection = null;
@@ -1379,6 +1381,7 @@
         }
         db.settings = db.settings || {};
         if(!db.settings.createdAt) db.settings.createdAt = nowISO();
+        if(!db.settings.pendingPhotoUploads || typeof db.settings.pendingPhotoUploads !== "object") db.settings.pendingPhotoUploads = {};
       }catch(e){
         console.error(e);
         toast("Erreur lecture sauvegarde locale");
@@ -1779,6 +1782,7 @@
 
       currentPartId = null;
       tempPhotoData = "";
+      tempPhotoChanged = false;
       originalFormReferenceKey = "";
       originalFormBarcodeKey = "";
       catalogAcceptedReferenceKey = prefill._catalogAccepted ? catalogReferenceKey(prefill.reference || "") : "";
@@ -1812,6 +1816,7 @@
       if(!p) return;
       currentPartId = id;
       tempPhotoData = p.photoData || "";
+      tempPhotoChanged = false;
       originalFormReferenceKey = catalogReferenceKey(p.reference || "");
       originalFormBarcodeKey = catalogBarcodeKey(p.barcode || "");
       catalogAcceptedReferenceKey = originalFormReferenceKey;
@@ -1852,6 +1857,7 @@
       $("fMinQty").value = 0;
       $("fPhoto").value = "";
       tempPhotoData = "";
+      tempPhotoChanged = false;
       catalogAcceptedReferenceKey = "";
       originalFormReferenceKey = "";
       catalogAcceptedBarcodeKey = "";
@@ -1872,6 +1878,7 @@
       const file = event.target.files && event.target.files[0];
       if(!file) return;
       tempPhotoData = await resizeImage(file, 900, 0.74);
+      tempPhotoChanged = true;
       $("photoPreview").src = tempPhotoData;
       $("photoPreview").classList.remove("hidden");
     }
@@ -2246,6 +2253,8 @@
         updatedAt: nowISO()
       };
 
+      const photoWasChanged = Boolean(tempPhotoChanged && p.photoData);
+
       if(existing){
         Object.assign(existing, p);
         if(oldQty !== qty){
@@ -2266,8 +2275,13 @@
         }
         toast("Pièce ajoutée");
       }
+      if(photoWasChanged) queueLocalPhotoUpload(p);
+      tempPhotoChanged = false;
       save();
       showDetail(id);
+      if(photoWasChanged && (!cloudConfigured() || !navigator.onLine)){
+        toast("Photo conservée · envoi automatique en attente");
+      }
     }
 
     async function deletePart(id){
@@ -2278,6 +2292,7 @@
         {title:"Supprimer la pièce", type:"danger", confirmText:"Supprimer"}
       )) return;
       db.parts = db.parts.filter(x=>x.id !== id);
+      removePendingPhotoUpload(id);
       save();
       toast("Pièce supprimée");
       go("inventory");
@@ -3840,6 +3855,7 @@
         setCloudStatus("Stock synchronisé", "");
         if(!silent) toast("Stock envoyé dans le cloud");
         await checkCatalogUpdates({interactive:!silent});
+        await syncPendingLocalPhotos({silent});
         return true;
       }catch(e){
         console.error(e);
@@ -3883,7 +3899,8 @@
           technicianDepot: db.settings.technicianDepot,
           mustChangePin: db.settings.mustChangePin,
           userRole: db.settings.userRole || "technician",
-          catalogUpdateState: db.settings.catalogUpdateState || {}
+          catalogUpdateState: db.settings.catalogUpdateState || {},
+          pendingPhotoUploads: db.settings.pendingPhotoUploads || {}
         };
         db = {
           parts:safeParts,
@@ -3936,6 +3953,8 @@
         }else{
           setCloudStatus("Stock dans le cloud à jour", "");
         }
+
+        if(!(localChanged && remoteChanged)) await syncPendingLocalPhotos({silent:true});
       }catch(e){
         console.warn("Synchronisation automatique :", e);
         setCloudStatus("Cloud indisponible, utilisation locale", "warn");
@@ -4322,6 +4341,140 @@
     const sharedPhotoInfoCache = new Map();
     const sharedPhotoBlobCache = new Map();
     let sharedPhotoObserver = null;
+    function photoUploadQueue(){
+      db.settings = db.settings || {};
+      if(!db.settings.pendingPhotoUploads || typeof db.settings.pendingPhotoUploads !== "object") db.settings.pendingPhotoUploads = {};
+      return db.settings.pendingPhotoUploads;
+    }
+
+    function localPhotoSignature(dataUrl){
+      const value = String(dataUrl || "");
+      if(!value) return "";
+      return value.length + ":" + value.slice(-96);
+    }
+
+    function persistPhotoQueueState(){
+      try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); }catch(error){ console.warn("Sauvegarde file photo :", error); }
+    }
+
+    function queueLocalPhotoUpload(part){
+      if(!part?.id || !part.photoData) return false;
+      const signature = localPhotoSignature(part.photoData);
+      if(!signature) return false;
+      const queue = photoUploadQueue();
+      const previous = queue[part.id] || {};
+      queue[part.id] = {
+        signature,
+        queuedAt: nowISO(),
+        lastAttemptAt: previous.signature === signature ? (previous.lastAttemptAt || "") : "",
+        lastError: previous.signature === signature ? (previous.lastError || "") : ""
+      };
+      persistPhotoQueueState();
+      return true;
+    }
+
+    function removePendingPhotoUpload(partId){
+      const queue = photoUploadQueue();
+      if(!queue[partId]) return;
+      delete queue[partId];
+      persistPhotoQueueState();
+    }
+
+    function pendingPhotoUploadFor(part){
+      if(!part?.id) return null;
+      const entry = photoUploadQueue()[part.id];
+      if(!entry) return null;
+      if(!part.photoData || entry.signature !== localPhotoSignature(part.photoData)) return null;
+      return entry;
+    }
+
+    async function sendLocalPhotoToSharedCloud(part){
+      if(!part?.photoData) throw new Error("Aucune photo locale à envoyer");
+      if(!sharedPartKey(part)) throw new Error("Ajoute une référence ou un code-barres avant d’envoyer la photo");
+      const sourceBlob = legacyPhotoDataToBlob(part.photoData);
+      const compressedBlob = await compressSharedPhoto(sourceBlob);
+      const form = new FormData();
+      form.append("reference", part.reference || "");
+      form.append("barcode", part.barcode || "");
+      form.append("designation", part.designation || "");
+      form.append("file", compressedBlob, compressedBlob.type === "image/jpeg" ? "photo.jpg" : "photo.webp");
+      const path = isAdminUser() ? "/api/photos/official" : "/api/photos/propose";
+      const data = await cloudFetchForm(path, form);
+      sharedPhotoInfoCache.delete(sharedPartKey(part));
+      [...sharedPhotoBlobCache.entries()].forEach(([key,url])=>{
+        if(key.startsWith((data.referenceKey || sharedPartKey(part)) + ":")){
+          URL.revokeObjectURL(url);
+          sharedPhotoBlobCache.delete(key);
+        }
+      });
+      return data;
+    }
+
+    async function syncPendingLocalPhotos(options = {}){
+      const silent = options.silent !== false;
+      if(pendingPhotoSyncRunning || !cloudConfigured() || db.settings.mustChangePin || !navigator.onLine){
+        return {sent:0,failed:0,pending:Object.keys(photoUploadQueue()).length};
+      }
+
+      pendingPhotoSyncRunning = true;
+      let sent = 0;
+      let failed = 0;
+      const queue = photoUploadQueue();
+      try{
+        for(const partId of Object.keys(queue)){
+          const part = getPart(partId);
+          if(!part || !part.photoData){
+            delete queue[partId];
+            continue;
+          }
+
+          const signature = localPhotoSignature(part.photoData);
+          if(queue[partId]?.signature !== signature){
+            queue[partId] = {signature,queuedAt:nowISO(),lastAttemptAt:"",lastError:""};
+          }
+
+          queue[partId].lastAttemptAt = nowISO();
+          queue[partId].lastError = "";
+          persistPhotoQueueState();
+
+          try{
+            const data = await sendLocalPhotoToSharedCloud(part);
+            delete queue[partId];
+            persistPhotoQueueState();
+            sent++;
+            if(!silent) toast(data.message || (isAdminUser() ? "Photo officielle envoyée" : "Photo proposée à l’administrateur"));
+          }catch(error){
+            queue[partId].lastError = error.message || String(error);
+            persistPhotoQueueState();
+            failed++;
+          }
+        }
+
+        if(sent){
+          sharedPhotoInfoCache.clear();
+          if(isAdminUser()) refreshAdminStorageBanner();
+          if(currentView === "detail" && currentPartId){
+            const part = getPart(currentPartId);
+            if(part){
+              const target=document.querySelector(`[data-shared-photo-part="${CSS.escape(part.id)}"][data-shared-detail="1"]`);
+              if(target) await hydrateSharedPhotoTarget(target).catch(()=>{});
+              await renderSharedPhotoActions(part).catch(()=>{});
+            }
+          }
+        }
+
+        if(!silent && failed){
+          await appAlert(
+            "Le stock est synchronisé, mais " + failed + " photo(s) n’ont pas pu être envoyées.\n\nElles restent enregistrées sur ce téléphone et seront réessayées automatiquement à la prochaine synchronisation.",
+            {title:"Photos en attente", type:"warn"}
+          );
+        }
+        return {sent,failed,pending:Object.keys(queue).length};
+      }finally{
+        pendingPhotoSyncRunning = false;
+      }
+    }
+
     let driveStorageTimer = null;
     let legacyPhotoImportRunning = false;
 
@@ -4554,10 +4707,13 @@
       let info=knownInfo;
       try{info=info || await getSharedPhotoInfo(part)}catch(error){box.innerHTML='<div class="mini">Photos partagées indisponibles : '+escapeHtml(error.message)+'</div>';return}
       const proposal=info.ownProposal;
-      const statusText = proposal ? ({pending:"Proposition en attente de validation",approved:"Dernière proposition validée",rejected:"Dernière proposition refusée"}[proposal.status] || proposal.status) : "Aucune proposition envoyée";
+      const localPending=pendingPhotoUploadFor(part);
+      const statusText = localPending
+        ? "Photo locale en attente d’envoi automatique"
+        : (proposal ? ({pending:"Proposition en attente de validation",approved:"Dernière proposition validée",rejected:"Dernière proposition refusée"}[proposal.status] || proposal.status) : "Aucune proposition envoyée");
       box.innerHTML = `
-        <div class="section-title"><h3 style="margin:0">📷 Photo partagée</h3><span class="pill ${proposal?.status === "pending" ? "warn" : ""}">${escapeHtml(statusText)}</span></div>
-        <div class="mini">${info.photo ? "Une photo officielle est disponible pour cette référence." : "Aucune photo officielle pour cette référence."}</div>
+        <div class="section-title"><h3 style="margin:0">📷 Photo partagée</h3><span class="pill ${(proposal?.status === "pending" || localPending) ? "warn" : ""}">${escapeHtml(statusText)}</span></div>
+        <div class="mini">${info.photo ? "Une photo officielle est disponible pour cette référence." : "Aucune photo officielle pour cette référence."}${localPending ? " La photo déjà prise reste conservée sur ce téléphone et sera renvoyée automatiquement à la prochaine synchronisation." : ""}</div>
         <div class="btnrow" style="margin-top:10px">
           <button class="${isAdminUser() ? "ok" : "secondary"}" onclick="chooseSharedPhoto('${part.id}')">${isAdminUser() ? "Ajouter / remplacer la photo officielle" : "Proposer une photo"}</button>
         </div>`;
