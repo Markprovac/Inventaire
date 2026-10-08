@@ -5018,7 +5018,7 @@
         }
 
         applySnapshotToLocal(mergedSnapshot, {updatedAt:data.updatedAt, revision:data.revision});
-        setCloudStatus("Stock synchronisé et fusionné · V3 anti-limite D1", "");
+        setCloudStatus("Stock synchronisé et fusionné", "");
         if(!silent) toast("Stock synchronisé");
         await checkCatalogUpdates({interactive:!silent});
         await syncPendingLocalPhotos({silent});
